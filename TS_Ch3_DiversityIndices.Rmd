@@ -1,0 +1,376 @@
+---
+title: "TS_CH3_Code"
+author: "Tessa R Smith"
+date: "2023-09-11"
+output: word_document
+---
+
+## INTRODUCTION
+
+**BEETLE BIOGEOGRAPHY PROJECT**, University of Tasmania. Data collected by Tessa R Smith and volunteers (2020-2022). Code by Tessa Smith, last edited June 2024.
+
+**AIMS**
+-   **AIM 1:Exploratory data analysis, Commute Abundance + Alpha diversity**
+-   **AIM 2:Exploratory data analysis, Commute Gamma diversity**
+-   **AIM 3:Exploratory data analysis, Commute Beta diversity**
+-   **AIM 4:Exploratory data analysis, Commute Zeta diversity**
+
+## DATA PREPARATION
+
+```{r, echo = FALSE}
+#STEP 0.1.1: Setup packages and working directory
+rm(list = ls()) # clear memory and start afresh
+
+#STEP 0.1.2:Change the location for your computer. 
+#NOTE make sure you use \\ instead of \ or /, as these result in errors. 
+setwd("C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH3_BROADSCALE\\CH3_AIM1_DiversityIndices")
+```
+Notes: works
+
+```{r}
+#STEP 0.1.3: Load packages
+library(dplyr)
+library(tidyverse)
+```
+Notes: works
+
+```{r, echo = FALSE}
+#STEP 0.2.1: Import data
+#Metadata (includes altitude etc)
+#Reference: Own data (Tessa Smith PhD)
+#File type: CSV
+#Format: long form. #Columns: site_ID, species, specimen_count. #Rows: Individual records
+beetle_records.df <- read.csv("TS_Site_BeetleRecords_20240306.csv", header = TRUE, stringsAsFactors = FALSE)
+View(beetle_records.df) #Opens data in another tab so it can be easily viewed
+```
+Notes: works
+
+```{r, echo = FALSE}
+#STEP 0.2.2: Reshapes species list of beetle records from long form into site.count form (wide)
+#Only necessary once before start of analysis
+df_reshaped <- beetle_records.df %>%
+#Change from long to wide format
+pivot_wider(id_cols = site_ID,
+            names_from = species,
+            values_from = species_count,
+            # Sum the entries where there is more than 1 value in specimen_count
+            values_fn = list(species_count= sum)) 
+
+#STEP 0.2.3: Change NAs in the new dataset to 0
+df_reshaped[is.na(df_reshaped)] <-0 
+df_reshaped <- na.omit(df_reshaped)
+
+#STEP 0.2.4: Add new columns, Count abundance number for each site, Cound species number for each site, Count unique species for each site
+df_reshaped <- df_reshaped %>% 
+  mutate(
+    abundance = rowSums(.[, -1]),  # Sum all values from columns other than the first one
+    species_count = rowSums(.[-1] > 0),  # Count numbers of columns >0
+    unique_species = rowSums((.[, -1] > 0) * (colSums(.[-1] > 0) == 1))  # Count number of columns with a value >0 that occur in no other row
+  )
+view (df_reshaped)
+```
+Notes: works
+
+```{r}
+#STEP 0.2.5: Log transform data
+for (i in 2:688) {
+  df_reshaped[, i] = log(df_reshaped[, i] + 1)
+}
+head(df_reshaped)
+```
+Notes: works. Logarithmic transformation (log(x + 1)) is frequently used to stabilize variance and normalize the distribution of species abundance data. It is particularly useful when dealing with highly skewed data, as it compresses the range of values and reduces the impact of large outliers. 
+
+```{r}
+#STEP 0.2.6: Remove rare species (species present in <5 sites)
+
+# Function to remove columns where species is present in less than 5 sites
+remove_infrequent_species <- function(df, threshold = 5) {
+  # Calculate the number of sites each species is present in
+  species_counts <- colSums(df != 0)
+  
+  # Identify columns to keep and to remove
+  columns_to_keep <- species_counts >= threshold
+  columns_to_remove <- species_counts < threshold
+  
+  # Filter the data frame
+  df_filtered <- df[, columns_to_keep]
+  
+  # Print the number of columns included and removed
+  num_included <- sum(columns_to_keep)
+  num_removed <- sum(columns_to_remove)
+  cat("Number of columns included:", num_included, "\n")
+  cat("Number of columns removed:", num_removed, "\n")
+  
+  return(df_filtered)
+}
+
+# Apply the function to df_reshaped
+df_filtered <- remove_infrequent_species(df_reshaped, 5)
+```
+Notes: works. Removes the majority of the data though. 
+
+```{r, echo = FALSE}
+#STEP 0.3.1: Import data (environmental data(local))
+#Metadata (includes altitude etc)
+#Reference: Own data (Tessa Smith PhD)
+#File type: CSV
+#Format: wide form #Columns: environmental variables #Rows:Sites
+Metadata <- read.csv("TS_Site_Enviro_metadata_20230622.csv", header = TRUE, stringsAsFactors = FALSE)
+View(Metadata) #Opens data in another tab so it can be easily viewed
+
+```
+Notes: works
+
+## DATA ANALYSIS
+
+-   **AIM 1:Exploratory data analysis, Commute Abundance + Alpha diversity**
+Method reference: Numerical Ecology with R book
+(<https://rpubs.com/CPEL/NMDS>)
+
+```{r}
+#STEP 1.1: Load packages
+library(vegan)
+library(ggplot2)
+library(ggpmisc)
+```
+Notes: works
+
+```{r}
+#STEP 1.2.1: Plot diversity vs. abundance by site
+
+# Fit the linear model
+lm_fit <- lm(species_count ~ abundance, data = df_reshaped)
+
+# Extract the coefficients
+intercept <- coef(lm_fit)[1]
+slope <- coef(lm_fit)[2]
+
+# Calculate R-squared
+r_squared <- summary(lm_fit)$r.squared
+
+# Extract the p-value
+p_value <- summary(lm_fit)$coefficients[2, 4]
+
+# Create formula text
+formula_text <- paste0("y = ", round(intercept, 2), " + ", round(slope, 2), "x",
+                       "\nR² = ", round(r_squared, 2),
+                       "\np = ", format.pval(p_value, digits = 2))
+
+# Make the scatterplot with a linear model and formula
+ggplot(df_reshaped, aes(x = abundance, y = species_count)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "blue", se = FALSE) +
+  labs(title = "Scatterplot of Species Counts vs Abundance with Linear Model",
+       x = "Abundance",
+       y = "Species Diversity") +
+  theme_minimal() +
+  annotate("text", x = Inf, y = Inf, label = formula_text, hjust = 1.1, vjust = 1.1, size = 5)
+```
+Notes: works
+
+```{r}
+#STEP 1.2.2: Select the top 5 rows based on the abundance column
+top_5_rows <- df_reshaped %>%
+  arrange(desc(abundance)) %>%
+  head(5)
+
+# Print the top 5 rows and their abundance values
+print(top_5_rows)
+
+# Print only the abundance values of the top 5 rows
+print(top_5_rows$abundance)
+```
+Notes: works
+
+```{r}
+#STEP 1.2.3: Ensure all columns are numeric, excluding the last three columns
+df_numeric <- df_reshaped %>% select_if(is.numeric) %>% select(-((ncol(.) - 2):ncol(.)))
+
+# Calculate the total abundance for each species
+species_abundance <- colSums(df_numeric)
+
+# Convert to a data frame
+species_abundance_df <- data.frame(species = names(species_abundance), abundance = species_abundance)
+
+# Select the top 5 species based on abundance
+top_5_species <- species_abundance_df %>%
+  arrange(desc(abundance)) %>%
+  head(5)
+
+# Print the top 5 species and their abundance values
+print(top_5_species)
+```
+Notes:works
+
+```{r}
+#STEP 1.3.1: Assuming df_reshaped_counts is your dataframe
+# Calculate statistics
+min_species_counts <- min(df_reshaped$species_count, na.rm = TRUE)
+max_species_counts <- max(df_reshaped$species_count, na.rm = TRUE)
+mean_species_counts <- mean(df_reshaped$species_count, na.rm = TRUE)
+sd_species_counts <- sd(df_reshaped$species_count, na.rm = TRUE)
+
+# Print the statistics
+cat("Minimum species counts:", min_species_counts, "\n")
+cat("Maximum species counts:", max_species_counts, "\n")
+cat("Mean species counts:", mean_species_counts, "\n")
+cat("Standard deviation of species counts:", sd_species_counts, "\n")
+```
+Notes: works
+
+```{r}
+#STEP 1.3.2: Select the top 5 rows based on the species richness column
+top_5_rows_richness <- df_reshaped %>%
+  arrange(desc(species_count)) %>%
+  head(5)
+
+# Print the top 5 rows and their abundance values
+print(top_5_rows_richness)
+
+# Print only the abundance values of the top 5 rows
+print(top_5_rows_richness$species_count)
+```
+Notes: works
+
+```{r}
+#STEP 1.4.1: Assuming df_reshaped_counts is your dataframe
+# Calculate statistics
+min_species_unique <- min(df_reshaped$unique_species, na.rm = TRUE)
+max_species_uniqu <- max(df_reshaped$unique_species, na.rm = TRUE)
+mean_species_uniqu <- mean(df_reshaped$unique_species, na.rm = TRUE)
+sd_species_uniqu <- sd(df_reshaped$unique_species, na.rm = TRUE)
+
+# Print the statistics
+cat("Minimum species counts:", min_species_counts, "\n")
+cat("Maximum species counts:", max_species_counts, "\n")
+cat("Mean species counts:", mean_species_counts, "\n")
+cat("Standard deviation of species counts:", sd_species_counts, "\n")
+```
+Notes: works
+
+```{r}
+#STEP 1.4.2: Select the top 5 rows based on the unique species column
+top_5_rows_unique <- df_reshaped %>%
+  arrange(desc(unique_species)) %>%
+  head(5)
+
+# Print the top 5 rows and their abundance values
+print(top_5_rows_unique)
+
+# Print only the abundance values of the top 5 rows
+print(top_5_rows_unique$unique_species)
+```
+Notes: works
+
+-   **AIM 2:Exploratory data analysis, Commute Gamma diversity**
+```{r}
+#STEP 2.1: Load packages
+library(vegan)
+```
+Notes: works
+
+```{r}
+#STEP 2.2: Generate a species accumulation curve
+
+# Ensure all columns are numeric
+df_numeric <- df_reshaped %>% select_if(is.numeric)
+
+# Create a species accumulation curve
+spec_accum <- specaccum(df_numeric, method = "random")
+
+# Plot the species accumulation curve
+plot(spec_accum, 
+     xlab = "Number of Sites", 
+     ylab = "Accumulated Number of Species", 
+     main = "Species Accumulation Curve", 
+     ci.type = "polygon", 
+     col = "blue", 
+     lwd = 2, 
+     ci.lty = 0, 
+     ci.col = "lightblue")
+
+```
+Notes: works
+
+-   **AIM 3:Exploratory data analysis, Commute Beta diversity**
+
+```{r}
+#STEP 3.1: Load packages
+library(vegan)
+library(dplyr)
+```
+Notes: works
+
+```{r}
+#STEP 3.2.1: Plots betadiversity  with vegan. Created triangular plot based on pairwise comparisons between assemblages. 
+m <- betadiver(df_reshaped[, -1])
+plot(m)
+```
+Notes: works
+
+```{r}
+#STEP 3.2.2: Extract names of highly correlated pairs
+```
+Notes: not working
+
+```{r}
+#STEP 3.3.1: Compute diversity indices
+
+# Extract site names from the first column
+site_names <- df_reshaped[, 1]
+
+# Ensure all columns are numeric, excluding the site names and the last three columns
+df_numeric <- df_reshaped %>% select_if(is.numeric) %>% select(-((ncol(.) - 2):ncol(.)))
+
+# Compute diversity indices  
+N0  <- rowSums(df_numeric > 0) # Species richness
+H   <- diversity(df_numeric) # Shannon entropy
+N1  <- exp(H) # Shannon diversity number
+N2  <- diversity(df_numeric, "inv") # Simpson diversity number
+J   <- H / log(N0) # Pielou evenness
+E1  <- N1 / N0 # Shannon evenness (Hill's ratio)
+E2  <- N2 / N0 # Simpson evenness (Hill's ratio)
+
+# Combine diversity indices into a data frame with site names
+div <- data.frame(Site = site_names, N0, H, N1, N2, E1, E2, J)
+
+# Print the diversity indices table
+print(div)
+
+# Export the div dataframe to a CSV file
+write.csv(div, "diversity_indices.csv", row.names = FALSE)
+```
+Notes: works
+
+-   **AIM 4:Exploratory data analysis, Commute Zeta diversity**
+```{r}
+#STEP 4.1: Load packages
+library(zetadiv)
+```
+Notes: works
+
+```{r}
+
+#STEP 4.2.1: Remove the first column if it contains site names and the last three columns
+df_numeric <- df_reshaped[, -c(1, (ncol(df_reshaped) - 2):ncol(df_reshaped))]
+
+# Ensure df_numeric is in the correct format (species in columns, sites in rows)
+# Convert to presence/absence data if necessary
+df_pa <- df_numeric > 0
+
+# Define the number of sites to consider in the zeta diversity calculation
+# For example, calculate zeta diversity for up to 5 sites
+zeta_max_order <- 5
+
+# Calculate zeta diversity
+zeta_values <- Zeta.decline.ex(df_pa, orders = 1:zeta_max_order)
+
+# Print the zeta diversity values
+print(zeta_values)
+
+# Optionally, plot the zeta diversity values
+plot(zeta_values$zeta.val, type = "b", xlab = "Order", ylab = "Zeta Diversity", main = "Zeta Diversity Plot")
+```
+Notes: works
+
+END DOCUMENT
