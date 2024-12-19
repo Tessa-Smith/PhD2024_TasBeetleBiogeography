@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><beast beautitemplate='Standard' beautistatus='' namespace="beast.core:beast.evolution.alignment:beast.evolution.tree.coalescent:beast.core.util:beast.evolution.nuc:beast.evolution.operators:beast.evolution.sitemodel:beast.evolution.substitutionmodel:beast.base.evolution.alignment:beast.pkgmgmt:beast.base.core:beast.base.inference:beast.base.evolution.tree.coalescent:beast.pkgmgmt:beast.base.core:beast.base.inference.util:beast.evolution.nuc:beast.base.evolution.operator:beast.base.inference.operator:beast.base.evolution.sitemodel:beast.base.evolution.substitutionmodel:beast.base.evolution.likelihood" required="BEAST.base v2.7.5" version="2.7">
+        
+
+    <data
+id="Nucleotide
+alignment_GB_v1_20230418
+(modified)"
+spec="Alignment"
+name="alignment">
+                            
+        <sequence id="seq_TS113_Assembly_consensus_sequence_HUONRD001" spec="Sequence" taxon="TS113_Assembly_consensus_sequence_HUONRD001" totalcount="4" value="--------------------------TATTTTAATTTTWCCTGGATTTGGAATAATT---TCTCATATTATTTANCCARGAAAGAAGA--AA-AAANGAAGCTTTTCGGAACTNTTKGGTATAWAATWTRCRMTATAWWRSTWNNTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGAATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGAACTCAAAT-TTTATATACCCCAGTTACTTTATGGGCTTTAGGCTTCGTATTTTTATTCACTGTAGGAGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATTATTCTACATGACACTTATTATGTTGTCGCTCATTTTCATTATGTTCTTTCTATAGGTGCAGTATKCGCAATTATAGCCGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTTCCGCAACATTTTTTAGGGTTAAGTGGGATACCTCGGCGATATTCAGATTACCCTGATGCTTTTACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCTTAATTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTNAAGCGAAAAAAGACTAAGCTCATTAAGAA-TAANTTCTTCWATTGAATGATTACAA--CAATTTCCACCTACTGAACATANA-TA-TTCTGAG-TTACCTTNATTAACTGCTAAATTCTAATATGGCAGA"/>
+                            
+        <sequence id="seq_TS178_Assembly_consensus_sequence_HOTSPEX001" spec="Sequence" taxon="TS178_Assembly_consensus_sequence_HOTSPEX001" totalcount="4" value="---------GGTCATCCAGAAGTTTATATTTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-WAKTCAGGAARGAGGA--AA-AAAAGAAGCTT-TCGGAACTTTGG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGGATTAAAGTTTTTAGTTGATTAGCAACTCTCCATGGAACTCAAAT-TTTGTATACCCCAGTTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACTGTAGGGGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATCATTCTACATGACACTTATTATGTTGTCGCTCATTTTCACTATGTTCTTTCTATAGGTGCTGTATTCGCAATTATAGCCGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTCCCGCAACATTTTTTAGGGTTAAGTGGGATACCTCGGCGGTATTCAGATTACCCTGATGCTTTCACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCTTAGTTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTAA-ACGA-AAAAGAMTWAGCTYATTAAGAAWTAAATTCTTCAATTGAATGACTGCAA--MAGTTTCCACCTGCTGAACACARA-TNTTTCTGAG-CTACCTTTATTAACTGCTNAANTTC-----------"/>
+                            
+        <sequence id="seq_TS180_Assembly_consensus_sequence_STRICKLAND001" spec="Sequence" taxon="TS180_Assembly_consensus_sequence_STRICKLAND001" totalcount="4" value="-----------TCATCCAGAAGTTTATATTTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAGGAAAGAAGA--AA-AAAAGAAGCTT-TCGGAACTTTGG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGAATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGAACTCAAAT-TTTATATACCCCAGTTACTTTATGGGCTTTAGGCTTCGTATTTTTATTCACTGTAGGAGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATTATTCTACATGACACTTATTATGTTGTCGCTCATTTTCATTATGTTCTTTCTATAGGTGCAGTATTCGCAATTATAGCCGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTTCCGCAACATTTTTTAGGGTTAAGCGGGATACCTCGGCGATATTCAGATTACCCTGATGCTTTTACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCTTAATTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTAA-GCGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGATTACAA--CAATTTCCGCCTACTGAACATAGA-TA-TTCNGAG-TNACCTTTATTAAC----------------------"/>
+                            
+        <sequence id="seq_TS181_Assembly_consensus_sequence_STRICKLAND001" spec="Sequence" taxon="TS181_Assembly_consensus_sequence_STRICKLAND001" totalcount="4" value="---------GGTCATCCAGAAGTTTATATTTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAGGAAAGAAGA--AA-AAAAGAAGCTT-TCGGAACTTTGG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGAATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGAACTCAAAT-TTTATATACCCCAGTTACTTTATGGGCTTTAGGCTTCGTATTTTTATTTACTGTAGGAGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATTATTCTACATGACACTTATTATGTTGTCGCTCATTTTCATTATGTTCTTTCTATAGGTGCAGTATTCGCAATTATAGCCGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTTCCGCAACATTTTTTAGGGTTAAGCGGGATACCTCGGCGATATTCAGATTACCCTGATGCTTTTACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCTTAATTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTAA-GCGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGATTACAA--CAATTTCCGCCTACTGAACATAGA-TA-TTCTGAG-TTACCTTTATTAACTGCTAAATTCTAATATGG----"/>
+                            
+        <sequence id="seq_TS182_Assembly_consensus_sequence_CHESTEX001" spec="Sequence" taxon="TS182_Assembly_consensus_sequence_CHESTEX001" totalcount="4" value="---------------------------------------------TTTGGAATAATN---TCTCATATTAT-TAGTCANGAAAGAAGA--AAANAAAGAAGCNT-TCGGAACTTTAG---GTATAATTTATGCAATAATAGNTATTGGTTTATTAGGATTTATT-GTTTGAGCTCANCATATATTTACTATTNGNATAGATGTAGNYACNCGAGCTTATTTYANTTCAGCAACAATNNNTATTGCCGTCCCAACTGGAATTAAAGTTTTTAGATGATTRGCRNCTNTNCATGGRANTCAAAT-TTTATAYACNCCAGTTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACWGTAGGNGGATTAACNGGNGTAGTATTAGCAAATTCMTCAATTGATATTATTNTWCATGACACTTATTATGTTGTCGCTCATTTTCAYTATGTTCTTTCNAYAGGKGCAGTATTYGCAATTATAGYNGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTYAAAAATTCAATTTTTTATRATATTTATTGGAGTRAAWTTAACCTTTTTCCCNCAACATTTTTTAGGRTTAAGTGGAATACCTCGGCGATATTCAGATTACCCTGATGCTTTYACTCTATGAAATATTATTTCATCA-ATTGGATCTTTAATTTCCTTAATTAGAGTAATATTACTATTATTKATTTTATGAGAAGCATTAAC-AACTAA-ACGA-AAAAGANTAANCTCATTAAGAA-TA--------------------------------------------------------------------------------------------------"/>
+                            
+        <sequence id="seq_TS184_Assembly_consensus_sequence_STRICKLAND002" spec="Sequence" taxon="TS184_Assembly_consensus_sequence_STRICKLAND002" totalcount="4" value="-------------------------------------------------------------------------------------------------------------------------------------------------------------------------GAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGAATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGAACTCAAAT-TTTATATACCCCAGTTACTTTATGGGCTTTAGGCTTCGTATTTTTATTCACTGTAGGAGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATTATTCTACATGACACTTATTATGTTGTCGCTCATTTTCATTATGTTCTTTCTATAGGTGCAGTATTCGCAATTATAGCCGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTTCCGCAACATTTTTTAGGGTTAAGCGGGATACCTCGGCGATATTCAGATTACCCTGATGCTTTTACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCTTAATTAGAGTAATATTACTATTATTTATTTTATGANANGCATTANCNNACTAA-GCGA-AAAAGACTAANCTCATTAAGAA-TAAATTCTTCAATTG-------------------------------------------------------------------------------------"/>
+                            
+        <sequence id="seq_TS185_Assembly_consensus_sequence_DUCKHOLE001" spec="Sequence" taxon="TS185_Assembly_consensus_sequence_DUCKHOLE001" totalcount="4" value="TTGATTTTTGGTCATCCAGAAGTTTATATTTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAAGAAAGAAGA--AA-AAAAGAAGCTT-TCGGAACTTTAG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGGATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGAACTCAAAT-TTTATATACCCCAGTTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACTGTAGGAGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATCATTCTACATGACACTTATTATGTTGTCGCTCATTTTCACTATGTTCTTTCTATGGGTGCTGTATTCGCAATTATAGCCGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTCCCGCAACATTTTTTAGGGTTGAGTGGGATACCTCGGCGGTATTCAGATTACCCCGATGCTTTCACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCTTAGTTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTAA-ACGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGACTGCAA--CAGTTTCCACCTGCTGAACACAGA-TA-TTCTGAG-CTACCTTTATTAACTGCTAAATTCTAATATG-----"/>
+                            
+        <sequence id="seq_TS187_Assembly_consensus_sequence_RESOP001" spec="Sequence" taxon="TS187_Assembly_consensus_sequence_RESOP001" totalcount="4" value="-----------------------------------------------------------------------------------------------------NTT-TCGGAACTTTGG---GTATAATTTATGCAATAATAKCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGWATAGATGTAGATACACGAGCTTATTTCACTKCNNCAACAATAATTATTGCCGTCCCAACTGGAATTAAAGTYTTTAGATGATTAGCAACTCTCCATGGGACTCAAAT-TTTGWATACCCCAKYTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACTGTAGGGGGATTAACGGGTGKAGTGTTAGCAAATTCCTCAATTGAWATTAWCCTACNTGACACTTATTATGTTGTCNCTCATTTTCNTTATGTTCTTTCWATAGGKGCAGTATTCGCAATTATAGCCGGATTAATTCAATGATTCCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTCCCACAACATTTTTTAGGGTTAAGTGGGATACCTCGKCGGTATTCAGATTACCCNGATGCTTTCACTCTATSAAATATTATTTCATCA-ATCGGATCTTYAATTTCCTTAGTTAGAGTAATATTACTATTATTTATYTTATGGGAAGCATTAAC-AANTAA-GCGA-AAAAGACTAAGCTC-------------------------------------------------------------------------------------------------------------"/>
+                            
+        <sequence id="seq_TS192_Assembly_consensus_sequence_COOLEX001" spec="Sequence" taxon="TS192_Assembly_consensus_sequence_COOLEX001" totalcount="4" value="------------------------------------------------------------------ANTAN-NAGTCAGGAAAGNANGAAAA-AAAAGAAGCTT-TNGGAACTTTAG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGAATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGRACTCAAAT-TTTATAYACYCCAGTTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACTGTAGGGGGATTAACAGGYGTAGTGTTAGCAAATTCCTCAATTGATATTATTCTACATGACACTTATTATGTTGTCGCTCATTTTCATTATGTTCTTTCTATAGGGGCAGTATTCGCAATTATAGCYGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATRATATTTATTGGAGTAAATTTAACCTTTTTCCCACAACATTTTTTAGGGTTAAGTGGRATACCTCGGCGRTATTCAGATTACCCTGATGCTTTNNNTCTATGAAATATTATTTCATCA-ATTGGATCTTTAATTTCCTTANTTAGAGTAATATTACTATTATTTATTTTATGNGAAGCATTAAC-AACTAA-GCGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGATTACAA--CAATTCCCACC-------------------------------------------------------------"/>
+                            
+        <sequence id="seq_TS82_Assembly_consensus_sequence_HOTSPEX001" spec="Sequence" taxon="TS82_Assembly_consensus_sequence_HOTSPEX001" totalcount="4" value="TTGATTTTTGGTCATCCAGAAGTTTATATTTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAAGAAAGAAGA--AA-AAAAGAAGCTT-TCGGAACTTTGG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGGATTAAAGTTTTTAGTTGATTAGCAACTCTCCATGGAACTCAAAT-TTTGTATACCCCAGTTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACTGTAGGGGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATCATTCTACATGACACTTATTATGTTGTCGCTCATTTTCACTATGTTCTTTCTATAGGTGCTGTATTCGCAATTATAGCCGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTCCCGCAACATTTTTTAGGGTTAAGTGGGATACCTCGGCGGTATTCAGATTACCCTGATGCTTTCACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCTTAGTTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTAA-ACGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGACTGCAA--CAGTTTCCACCTGCTGAACACAGA-TA-TTCTGAG-CTACCTTTATTAACTGCTAAATTCTAATATGGCAGA"/>
+                            
+        <sequence id="seq_TS83_Assembly_consensus_sequence_CHESTEX001" spec="Sequence" taxon="TS83_Assembly_consensus_sequence_CHESTEX001" totalcount="4" value="TTGATTTTTGGTCATCCAGAAGTTTATATTTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAAGAAAGAAGA--AA-ANAAGAAGCCT-TCGGAACTTTRG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGRATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGAACTCAAAT-TTTATATACCCCAGTTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACTGTAGGGGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATYATTCTACATGACACTTATTATGTTGTCGCTCATTTTCAYTATGTTCTTTCTATAGGGGCAGTATTCGCAATTATAGCYGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAAYTTAACCTTTTTCCCGCAACATTTTTTAGGGTTAAGTGGAATACCTCGGCGATATTCAGATTACCCTGATGCTTTCACTCTATGAAATATTATTTCATCA-ATYGGATCTTTAATTTCCTTARTTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTAA-ACGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGAYTGCAA--CAATTCCCACCTGCTGAACACAGA-WA-WTCTGAG-CTACCTTTATTAACTGCTAAATTCTAATATGGCAG-"/>
+                            
+        <sequence id="seq_TS84_Assembly_consensus_sequence_COOLEX001" spec="Sequence" taxon="TS84_Assembly_consensus_sequence_COOLEX001" totalcount="4" value="TTGATTTTTGGTCATCCAGAAGTTTATATTTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAGGAAAGGAGA--AA-AAAAGAAGCTT-TCGGAACTTTAG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGAATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGGACTCAAAT-TTTGTATACCCCAGTTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACTGTAGGGGGATTAACAGGTGTAGTGTTAGCAAATTCCTCAATTGATATTATTCTACATGACACTTATTATGTTGTCGCTCATTTTCATTATGTTCTTTCTATAGGTGCAGTATTCGCAATTATAGCCGGATTAATTCAATGATTCCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTCCCACAACATTTTTTAGGGTTAAGTGGGATACCTCGGCGGTATTCAGATTACCCTGATGCTTTCACTCTATGAAATATTATTTCATCA-ATTGGATCTTTAATTTCCTTAGTTAGAGTGATATTACTATTATTTATTTTATGGGAAGCATTAAC-AACTAA-GCGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGACTACAA--CAATTTCCACCTACTGAACACAGA-TA-TTCTGAG-CTACCTTTATTAACTGCTAAATTCTAATATGGCAGA"/>
+                            
+        <sequence id="seq_TS85_Assembly_consensus_sequence_COOLEX001" spec="Sequence" taxon="TS85_Assembly_consensus_sequence_COOLEX001" totalcount="4" value="-TGATTTTTGGTCATCCAGAAGTTTATATTTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAGGAAAGGAGA--AA-AAAAGAAGCTT-TCGGAACTTTAG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGAATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGGACTCAAAT-TTTGTATACCCCAGTTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACTGTAGGGGGATTAACAGGTGTAGTGTTAGCAAATTCCTCAATTGATATTATTCTACATGACACTTATTATGTTGTCGCTCATTTTCATTATGTTCTTTCTATAGGTGCAGTATTCGCAATTATAGCCGGATTAATTCAATGATTCCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTCCCACAACATTTTTTAGGGTTAAGTGGGATACCTCGGCGGTATTCAGATTACCCTGATGCTTTCACTCTATGAAATATTATTTCATCA-ATTGGATCTTTAATTTCCTTAGTTAGAGTGATATTACTATTATTTATTTTATGGGAAGCATTAAC-AACTAA-GCGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGACTACGAACNAATTTCCACCTACTGAACACAGA-TA-TTCTGAG-CTACCTTTATTAACTGCTAAATTCTAATATGGCAA-"/>
+                            
+        <sequence id="seq_TS86_Assembly_consensus_sequence_COOLEX001" spec="Sequence" taxon="TS86_Assembly_consensus_sequence_COOLEX001" totalcount="4" value="TTGATTTTTGGTCATCCAGAAGTTTATATTTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAGGAAAGGAGA--AA-AAAAGAAGCTT-TCGGAACTTTAG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCCCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGAATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGGACTCAAAT-TTTGTATACCCCAGTTACTCTATGGGCTTTAGGTTTTGTATTTTTATTTACTGTAGGGGGATTAACAGGTGTAGTGTTAGCAAATTCCTCAATTGATATTATTCTACATGACACTTATTATGTTGTCGCTCATTTTCATTATGTTCTTTCTATAGGTGCAGTATTCGCAATTATAGCCGGATTAATTCAATGATTCCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTCCCACAACATTTTTTAGGGTTAAGTGGGATACCTCGGCGGTATTCAGATTACCCTGATGCTTTCACTCTATGAAATATTATTTCATCA-ATTGGATCTTTAATTTCCTTAGTTAGAGTGATATTACTATTATTTATTTTATGGGAAGCATTAAC-AACTAA-GCGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGACTACAA--CAATTTCCACCTACTGAACACAGA-TA-TTCTGAG-CTACCTTTATTAACTGCTAAATTCTAATATGGCAGA"/>
+                            
+        <sequence id="seq_TS88_Assembly_consensus_sequence_MEETUSRD001" spec="Sequence" taxon="TS88_Assembly_consensus_sequence_MEETUSRD001" totalcount="4" value="--GATTTTTGGACATCCTGAAGTTTATATTTTAATTTTACCAGGATTTGGRWTAMTC---TCCAWWATTAT-TAGCMARGAARGAGGG--AA-A---AAAGCCT-TTGGAMCWTTAG---GTATAATTTATGCWATAATAGC----------------------------------------------AATCTGTATAGATGTAGATTATCGMGCTCACTTCACTTCAGCAACAATAATTATTGCAATCCCWACTGGTATTAAAGTTTTTASTTGATYAGCAACCCTGCATGGAACCCAAAATTTGCCATACTCCAGTTACTTTATGGGCTTTAKGTTTKGTATTTTTATTTACCGTAGGAGGACTAATTG-GGTAGTATCAGAAAATTCATCAGTTAATATTATTST------------------AGTCGCCCATTTTTATTATGTTCTATCTATAGGTGCAGTATTTGCAATTATAGCTGGTTTAATCCAATGATTTATCTTATTCACAGGATTAACTTTAAATAATAAATATTCAAAAATTAAATTTTTTATTATATSCATTGGGGTAAATTTAACCTTTTTCCCCTAGCATTTTTTAGGATTAAGAGGAATACCTCGACGATACTCAGATTACCCCGATGCTTATATTCTATGAAATATTATTTCATCA-ATTGGATCTTTAATTTCCTTAATTAGAGTAATATTACTACTATTCATTTTATGAGAAACTCTCAC-AACCAA-TCAA-AAAAGGCTAAATTCACTAAGAA-TAAACTCTGCTATTGAATGATTACAA--AATTTCCCACTAGCTGAGCATAGA-TA-TTCTGAG-CTACMGTTATTATCGYGTAARTTCKAATATGGC---"/>
+                            
+        <sequence id="seq_TS89_Assembly_consensus_sequence_MEETUSRD001" spec="Sequence" taxon="TS89_Assembly_consensus_sequence_MEETUSRD001" totalcount="4" value="---TTTTTGGACATCCTGAAGTTTATATTTTAATTTTACCAGGATTTGGAATHAYATCYTTTTTCATWTAT-TAGTCAAGAAWGGAGA--AA-AAARGANSCTT-TKGGAACTTRAG---KWWWRTTTTATSTATWAWTABCYDTKGYT-TAWTWGGATTTAATARTWKGGCYYMACCATATWTTACCAWTGGGAMTAGATGTTGATACTCGGGCKTACTTTACTTCAGCAACAATAATTATTGCAGTACCAACTGGTATTAAAGTTTTCAGCTGATTAGCAACTCTCCATGGAACCCAAAT-TTTACATACCCCAGTAACTTTVTGAGCTWTAGGTTTTGTATTTTTATTTACAGTAGGTGGACTAACCGGAGTAGTAKTGGCAAACTCATCAAKTGATATTATTTTACATGATACTTACTATGTCGTTGCCCATTTTCATTATGTTTTATCAATAGGTGCAGTCTTTGCGATTATAGCTGGACTAATTCAATGSTTCCCCCTATTTACAGGACTAACCTTAAATAACAAATATYTAAAAATTCAATTTTTCATWATATYTATGGGAGTAAATTTAACTTTTTTCCCCCAACATTTTTTAGGATTAARTGGAATACCACGTCGATATTCAGACTACCCTGATGCTTTTACTCTATGAAATATTATTTCATCATATTGGATCTTTAATTTCCTTAATTAGAGTAATATTATTATTATYYATTTTATGAGAAACTCTMAC-AACYAA-WCGA-AAAAGTTTAAATTCATTAAGAA-TAAAYTCTTCCATTGAATGATTRC----------------------------------------------------------------------------"/>
+                            
+        <sequence id="seq_TS91_Assembly_consensus_sequence_STRICKLAND001" spec="Sequence" taxon="TS91_Assembly_consensus_sequence_STRICKLAND001" totalcount="4" value="------------CATCCAGAAGTTTATATTTTAATTTTACCKGGATTTGGAATAATT---TCTCATATTAT-TAGTCAGGAAAGAAGA--AA-AAAAGAAGCTT-TCGGAACTTTAG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGCATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGAACTCAAAT-TTTATATACCCCAGTTACTTTATGGGCTTTAGGCTTCGTATTTTTATTCACTGTAGGAGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATTATTCTACATGACACTTATTATGTTGTCGCTCATTTTCATTATGTTCTTTCTATAGGTGCAGTATTCGCAATTATAGCTGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTTCCGCAACATTTTTTAGGGTTAAGCGGGATACCTCGGCGATATTCAGATTACCCTGATGCTTTTACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCTTAATTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTAA-GCGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGATTACAA--CAATTTCCACCTACTGAACATAGA-TA-TTCTGAGGTTACCTTTATTAACTGCTAAATTCTAATATGG----"/>
+                            
+        <sequence id="seq_TS93_Assembly_consensus_sequence_HOTSPEX001" spec="Sequence" taxon="TS93_Assembly_consensus_sequence_HOTSPEX001" totalcount="4" value="--GATTTTTGGTCATCCAGAAGTTTATATTYTAATTTTAACTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAAGAAAGAAGA--AA-AAAAGAAGCTT-TCGGAACTTTGG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGGATTAAAGTTTTTAGTTGATTAGCAACTCTCCATGGAACTCAAAT-TTTGTATACCCCAGTTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACTGTAGGGGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATCATTCTACATGACACTTATTATGTTGTCGCTCATTTTCACTATGTTCTTTCTATAGGTGCTGTATTCGCAATTATAGCCGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTCCCGCAACATTTTTTAGGGTTAAGTGGGATACCTCGGCGGTATTCAGATTACCCTGATGCTTTCACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCTTAGTTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTAA-ACGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGACTGCAA--CAGTTTCCACCTGCTGAACACAGA-TA-TTCTGAG-CTACCTTTATTAACTGCTAAATTCTAATATGGCAGA"/>
+                            
+        <sequence id="seq_TS94_Assembly_consensus_sequence_CHESTEX001" spec="Sequence" taxon="TS94_Assembly_consensus_sequence_CHESTEX001" totalcount="4" value="-TGATTTTTGGTCATCCAGAAGTTTATATTTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAAGAAAGAAGA--AA-AAAAGAAGCTT-TCGGAACTTTAG---GTATAATTTATGCAATAATAGCTATTGGTCTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGGATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGGACTCAAAT-TTTATACACCCCAGTTACTTTATGGGCTTTAGGCTTTGTATTTTTATTTACTGTAGGAGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATCATTCTACATGACACTTATTATGTTGTCGCTCATTTTCACTATGTTCTTTCTATAGGTGCTGTATTCGCAATTATAGCCGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTCCCGCAACATTTTTTAGGGTTAAGCGGGATACCTCGGCGGTATTCAGATTACCCTGATGCTTTCACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCCTAGTTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTAA-ACGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGACTGCAA--CAGTTTCCACCTGCTGAACACAGA-TA-TTCTGAG-CTACCTTTATTAACTGCTAAATTCTAATATGGCAGA"/>
+                            
+        <sequence id="seq_TS95_Assembly_consensus_sequence_HUONRD001" spec="Sequence" taxon="TS95_Assembly_consensus_sequence_HUONRD001" totalcount="4" value="TTGATTTTTGGTCATCCAGAAGTTTATATCTTAATTTTACCTGGATTTGGAATAATT---TCTCATATTAT-TAGTCAGGAAAGAAGA--AA-AAAAGAAGCTT-TCGGAACTTTGG---GTATAATTTATGCAATAATAGCTATTGGTTTATTAGGATTTATT-GTTTGAGCTCATCATATATTTACTATTGGTATAGATGTAGATACACGAGCTTATTTCACTTCAGCAACAATAATTATTGCCGTCCCAACTGGAATTAAAGTTTTTAGATGATTAGCAACTCTCCATGGAACTCAAAT-TTTATATACCCCAGTTACTTTATGGGCTTTAGGCTTCGTATTTTTATTCACTGTAGGAGGATTAACGGGTGTAGTGTTAGCAAATTCCTCAATTGATATTATTCTACATGACACTTATTATGTTGTCGCTCATTTTCATTATGTTCTTTCTATAGGTGCAGTATTCGCAATTATAGCCGGATTAATTCAATGATTTCCATTATTTACTGGATTAACTTTAAATAATAAATATTTAAAAATTCAATTTTTTATAATATTTATTGGAGTAAACTTAACCTTTTTTCCGCAACATTTTTTAGGGTTAAGCGGGATACCTCGGCGATATTCAGATTACCCTGATGCTTTTACTCTATGAAATATTATTTCATCA-ATCGGATCTTTAATTTCCTTAATTAGAGTAATATTACTATTATTTATTTTATGAGAAGCATTAAC-AACTAA-GCGA-AAAAGACTAAGCTCATTAAGAA-TAAATTCTTCAATTGAATGATTACAA--CAATTTCCACCTACTGAACATAGAATC-TTCTGAG-TTACCTTTATTAACTGCTAAATTCTAATATGG----"/>
+                        
+    </data>
+        
+
+
+
+
+
+    
+
+
+
+
+
+    
+
+
+
+    <map name="Uniform" >beast.base.inference.distribution.Uniform</map>
+
+    
+
+    <map name="Exponential" >beast.base.inference.distribution.Exponential</map>
+
+    
+
+    <map name="LogNormal" >beast.base.inference.distribution.LogNormalDistributionModel</map>
+
+    
+
+    <map name="Normal" >beast.base.inference.distribution.Normal</map>
+
+    
+
+    <map name="Beta" >beast.base.inference.distribution.Beta</map>
+
+    
+
+    <map name="Gamma" >beast.base.inference.distribution.Gamma</map>
+
+    
+
+    <map name="LaplaceDistribution" >beast.base.inference.distribution.LaplaceDistribution</map>
+
+    
+
+    <map name="prior" >beast.base.inference.distribution.Prior</map>
+
+    
+
+    <map name="InverseGamma" >beast.base.inference.distribution.InverseGamma</map>
+
+    
+
+    <map name="OneOnX" >beast.base.inference.distribution.OneOnX</map>
+
+    
+
+    <run id="mcmc" spec="MCMC" chainLength="15000000">
+            
+        <state id="state" spec="State" storeEvery="5000">
+                    
+            <tree id="Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="beast.base.evolution.tree.Tree" name="stateNode">
+                            
+                <taxonset id="TaxonSet.Nucleotide alignment_GB_v1_20230418 (modified)" spec="TaxonSet">
+                                    
+                    <data idref="Nucleotide
+alignment_GB_v1_20230418
+(modified)"
+name="alignment"/>
+                                
+                </taxonset>
+                        
+            </tree>
+                    
+            <parameter id="rateAC.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+                    
+            <parameter id="rateAG.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+                    
+            <parameter id="rateAT.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+                    
+            <parameter id="rateCG.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+                    
+            <parameter id="rateGT.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" lower="0.0" name="stateNode">1.0</parameter>
+                    
+            <parameter id="freqParameter.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" dimension="4" lower="0.0" name="stateNode" upper="1.0">0.25</parameter>
+                    
+            <parameter id="gammaShape.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" lower="0.1" name="stateNode">1.0</parameter>
+                    
+            <parameter id="popSize.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" lower="0.0" name="stateNode">0.3</parameter>
+                
+        </state>
+            
+        <init id="RandomTree.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="RandomTree" estimate="false" initial="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" taxa="@Nucleotide alignment_GB_v1_20230418 (modified)">
+                    
+            <populationModel id="ConstantPopulation0.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="ConstantPopulation">
+                            
+                <parameter id="randomPopSize.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" name="popSize">1.0</parameter>
+                        
+            </populationModel>
+                
+        </init>
+            
+        <distribution id="posterior" spec="CompoundDistribution">
+                    
+            <distribution id="prior" spec="CompoundDistribution">
+                            
+                <distribution id="CoalescentConstant.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="Coalescent">
+                                    
+                    <populationModel id="ConstantPopulation.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="ConstantPopulation" popSize="@popSize.t:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                                    
+                    <treeIntervals id="TreeIntervals.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="beast.base.evolution.tree.TreeIntervals" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                                
+                </distribution>
+                            
+                <prior id="FrequenciesPrior.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="distribution" x="@freqParameter.s:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                    
+                    <distr id="Dirichlet.0" spec="distribution.Dirichlet">
+                                            
+                        <parameter id="RealParameter.17" spec="parameter.RealParameter" dimension="4" estimate="false" name="alpha">4.0 4.0 4.0 4.0</parameter>
+                                        
+                    </distr>
+                                
+                </prior>
+                            
+                <prior id="GammaShapePrior.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="distribution" x="@gammaShape.s:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                    
+                    <Exponential id="Exponential.0" name="distr">
+                                            
+                        <parameter id="RealParameter.0" spec="parameter.RealParameter" estimate="false" name="mean">1.0</parameter>
+                                        
+                    </Exponential>
+                                
+                </prior>
+                            
+                <prior id="PopSizePrior.t:Nucleotide alignment_GB_v1_20230418 (modified)" name="distribution" x="@popSize.t:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                    
+                    <OneOnX id="OneOnX.1" name="distr"/>
+                                
+                </prior>
+                            
+                <prior id="RateACPrior.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="distribution" x="@rateAC.s:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                    
+                    <Gamma id="Gamma.2" name="distr">
+                                            
+                        <parameter id="RealParameter.5" spec="parameter.RealParameter" estimate="false" name="alpha">0.05</parameter>
+                                            
+                        <parameter id="RealParameter.6" spec="parameter.RealParameter" estimate="false" name="beta">10.0</parameter>
+                                        
+                    </Gamma>
+                                
+                </prior>
+                            
+                <prior id="RateAGPrior.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="distribution" x="@rateAG.s:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                    
+                    <Gamma id="Gamma.3" name="distr">
+                                            
+                        <parameter id="RealParameter.7" spec="parameter.RealParameter" estimate="false" name="alpha">0.05</parameter>
+                                            
+                        <parameter id="RealParameter.8" spec="parameter.RealParameter" estimate="false" name="beta">20.0</parameter>
+                                        
+                    </Gamma>
+                                
+                </prior>
+                            
+                <prior id="RateATPrior.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="distribution" x="@rateAT.s:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                    
+                    <Gamma id="Gamma.4" name="distr">
+                                            
+                        <parameter id="RealParameter.9" spec="parameter.RealParameter" estimate="false" name="alpha">0.05</parameter>
+                                            
+                        <parameter id="RealParameter.10" spec="parameter.RealParameter" estimate="false" name="beta">10.0</parameter>
+                                        
+                    </Gamma>
+                                
+                </prior>
+                            
+                <prior id="RateCGPrior.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="distribution" x="@rateCG.s:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                    
+                    <Gamma id="Gamma.5" name="distr">
+                                            
+                        <parameter id="RealParameter.11" spec="parameter.RealParameter" estimate="false" name="alpha">0.05</parameter>
+                                            
+                        <parameter id="RealParameter.12" spec="parameter.RealParameter" estimate="false" name="beta">10.0</parameter>
+                                        
+                    </Gamma>
+                                
+                </prior>
+                            
+                <prior id="RateGTPrior.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="distribution" x="@rateGT.s:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                    
+                    <Gamma id="Gamma.7" name="distr">
+                                            
+                        <parameter id="RealParameter.15" spec="parameter.RealParameter" estimate="false" name="alpha">0.05</parameter>
+                                            
+                        <parameter id="RealParameter.16" spec="parameter.RealParameter" estimate="false" name="beta">10.0</parameter>
+                                        
+                    </Gamma>
+                                
+                </prior>
+                        
+            </distribution>
+                    
+            <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
+                            
+                <distribution id="treeLikelihood.Nucleotide alignment_GB_v1_20230418 (modified)" spec="ThreadedTreeLikelihood" data="@Nucleotide alignment_GB_v1_20230418 (modified)" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                    
+                    <siteModel id="SiteModel.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="SiteModel" gammaCategoryCount="4" shape="@gammaShape.s:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                            
+                        <parameter id="mutationRate.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" estimate="false" lower="0.0" name="mutationRate">0.0177</parameter>
+                                            
+                        <parameter id="proportionInvariant.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" estimate="false" lower="0.0" name="proportionInvariant" upper="1.0">0.0</parameter>
+                                            
+                        <substModel id="gtr.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="GTR" rateAC="@rateAC.s:Nucleotide alignment_GB_v1_20230418 (modified)" rateAG="@rateAG.s:Nucleotide alignment_GB_v1_20230418 (modified)" rateAT="@rateAT.s:Nucleotide alignment_GB_v1_20230418 (modified)" rateCG="@rateCG.s:Nucleotide alignment_GB_v1_20230418 (modified)" rateGT="@rateGT.s:Nucleotide alignment_GB_v1_20230418 (modified)">
+                                                    
+                            <parameter id="rateCT.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" estimate="false" lower="0.0" name="rateCT">1.0</parameter>
+                                                    
+                            <frequencies id="estimatedFreqs.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="Frequencies" frequencies="@freqParameter.s:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                                                
+                        </substModel>
+                                        
+                    </siteModel>
+                                    
+                    <branchRateModel id="StrictClock.c:Nucleotide alignment_GB_v1_20230418 (modified)" spec="beast.base.evolution.branchratemodel.StrictClockModel">
+                                            
+                        <parameter id="clockRate.c:Nucleotide alignment_GB_v1_20230418 (modified)" spec="parameter.RealParameter" estimate="false" lower="0.0" name="clock.rate">1.0</parameter>
+                                        
+                    </branchRateModel>
+                                
+                </distribution>
+                        
+            </distribution>
+                
+        </distribution>
+            
+        <operator id="RateACScaler.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="AdaptableOperatorSampler" weight="0.05">
+                    
+            <parameter idref="rateAC.s:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator id="AVMNOperator.Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.AdaptableVarianceMultivariateNormalOperator" allowNonsense="true" beta="0.05" burnin="400" initial="800" weight="0.1">
+                            
+                <transformations id="AVMNSumTransform.Nucleotide alignment_GB_v1_20230418 (modified)" spec="operator.kernel.Transform$LogConstrainedSumTransform">
+                                    
+                    <parameter idref="freqParameter.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="f"/>
+                                
+                </transformations>
+                            
+                <transformations id="AVMNLogTransform.Nucleotide alignment_GB_v1_20230418 (modified)" spec="operator.kernel.Transform$LogTransform">
+                                    
+                    <parameter idref="rateAC.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="f"/>
+                                    
+                    <parameter idref="rateAG.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="f"/>
+                                    
+                    <parameter idref="rateAT.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="f"/>
+                                    
+                    <parameter idref="rateCG.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="f"/>
+                                    
+                    <parameter idref="rateGT.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="f"/>
+                                    
+                    <parameter idref="gammaShape.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="f"/>
+                                
+                </transformations>
+                            
+                <transformations id="AVMNNoTransform.Nucleotide alignment_GB_v1_20230418 (modified)" spec="operator.kernel.Transform$NoTransform">
+                                    
+                    <tree idref="Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" name="f"/>
+                                
+                </transformations>
+                        
+            </operator>
+                    
+            <operator id="RateACScalerX.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.BactrianScaleOperator" parameter="@rateAC.s:Nucleotide alignment_GB_v1_20230418 (modified)" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+                
+        </operator>
+            
+        <operator id="RateAGScaler.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="AdaptableOperatorSampler" weight="0.05">
+                    
+            <parameter idref="rateAG.s:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator idref="AVMNOperator.Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator id="RateAGScalerX.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.BactrianScaleOperator" parameter="@rateAG.s:Nucleotide alignment_GB_v1_20230418 (modified)" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+                
+        </operator>
+            
+        <operator id="RateATScaler.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="AdaptableOperatorSampler" weight="0.05">
+                    
+            <parameter idref="rateAT.s:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator idref="AVMNOperator.Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator id="RateATScalerX.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.BactrianScaleOperator" parameter="@rateAT.s:Nucleotide alignment_GB_v1_20230418 (modified)" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+                
+        </operator>
+            
+        <operator id="RateCGScaler.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="AdaptableOperatorSampler" weight="0.05">
+                    
+            <parameter idref="rateCG.s:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator idref="AVMNOperator.Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator id="RateCGScalerX.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.BactrianScaleOperator" parameter="@rateCG.s:Nucleotide alignment_GB_v1_20230418 (modified)" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+                
+        </operator>
+            
+        <operator id="RateGTScaler.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="AdaptableOperatorSampler" weight="0.05">
+                    
+            <parameter idref="rateGT.s:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator idref="AVMNOperator.Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator id="RateGTScalerX.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.BactrianScaleOperator" parameter="@rateGT.s:Nucleotide alignment_GB_v1_20230418 (modified)" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+                
+        </operator>
+            
+        <operator id="FrequenciesExchanger.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="AdaptableOperatorSampler" weight="0.05">
+                    
+            <parameter idref="freqParameter.s:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator idref="AVMNOperator.Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator id="FrequenciesExchangerX.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="operator.kernel.BactrianDeltaExchangeOperator" delta="0.01" weight="0.1">
+                            
+                <parameter idref="freqParameter.s:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                        
+            </operator>
+                
+        </operator>
+            
+        <operator id="gammaShapeScaler.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="AdaptableOperatorSampler" weight="0.05">
+                    
+            <parameter idref="gammaShape.s:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator idref="AVMNOperator.Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <operator id="gammaShapeScalerX.s:Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.BactrianScaleOperator" parameter="@gammaShape.s:Nucleotide alignment_GB_v1_20230418 (modified)" scaleFactor="0.5" upper="10.0" weight="0.1"/>
+                
+        </operator>
+            
+        <operator id="CoalescentConstantBICEPSEpochTop.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="EpochFlexOperator" scaleFactor="0.1" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" weight="2.0"/>
+            
+        <operator id="CoalescentConstantBICEPSEpochAll.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="EpochFlexOperator" fromOldestTipOnly="false" scaleFactor="0.1" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" weight="2.0"/>
+            
+        <operator id="CoalescentConstantBICEPSTreeFlex.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="TreeStretchOperator" scaleFactor="0.01" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" weight="2.0"/>
+            
+        <operator id="CoalescentConstantTreeRootScaler.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.BactrianScaleOperator" rootOnly="true" scaleFactor="0.1" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" upper="10.0" weight="3.0"/>
+            
+        <operator id="CoalescentConstantUniformOperator.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.BactrianNodeOperator" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" weight="30.0"/>
+            
+        <operator id="CoalescentConstantSubtreeSlide.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.BactrianSubtreeSlide" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" weight="15.0"/>
+            
+        <operator id="CoalescentConstantNarrow.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="Exchange" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" weight="15.0"/>
+            
+        <operator id="CoalescentConstantWide.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="Exchange" isNarrow="false" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" weight="3.0"/>
+            
+        <operator id="CoalescentConstantWilsonBalding.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="WilsonBalding" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)" weight="3.0"/>
+            
+        <operator id="PopSizeScaler.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="kernel.BactrianScaleOperator" parameter="@popSize.t:Nucleotide alignment_GB_v1_20230418 (modified)" upper="10.0" weight="3.0"/>
+            
+        <logger id="tracelog" spec="Logger" fileName="$(filebase).log" logEvery="1000" model="@posterior" sanitiseHeaders="true" sort="smart">
+                    
+            <log idref="posterior"/>
+                    
+            <log idref="likelihood"/>
+                    
+            <log idref="prior"/>
+                    
+            <log idref="treeLikelihood.Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <log id="TreeHeight.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="beast.base.evolution.tree.TreeStatLogger" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                    
+            <parameter idref="rateAC.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="log"/>
+                    
+            <parameter idref="rateAG.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="log"/>
+                    
+            <parameter idref="rateAT.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="log"/>
+                    
+            <parameter idref="rateCG.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="log"/>
+                    
+            <parameter idref="rateGT.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="log"/>
+                    
+            <parameter idref="freqParameter.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="log"/>
+                    
+            <parameter idref="gammaShape.s:Nucleotide alignment_GB_v1_20230418 (modified)" name="log"/>
+                    
+            <parameter idref="popSize.t:Nucleotide alignment_GB_v1_20230418 (modified)" name="log"/>
+                    
+            <log idref="CoalescentConstant.t:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                
+        </logger>
+            
+        <logger id="screenlog" spec="Logger" logEvery="1000">
+                    
+            <log idref="posterior"/>
+                    
+            <log idref="likelihood"/>
+                    
+            <log idref="prior"/>
+                
+        </logger>
+            
+        <logger id="treelog.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="Logger" fileName="$(filebase)-$(tree).trees" logEvery="1000" mode="tree">
+                    
+            <log id="TreeWithMetaDataLogger.t:Nucleotide alignment_GB_v1_20230418 (modified)" spec="beast.base.evolution.TreeWithMetaDataLogger" tree="@Tree.t:Nucleotide alignment_GB_v1_20230418 (modified)"/>
+                
+        </logger>
+            
+        <operatorschedule id="OperatorSchedule" spec="OperatorSchedule"/>
+        
+    </run>
+
+    
+
+</beast>
