@@ -1,0 +1,731 @@
+---
+title: "4th_corner_test2"
+author: "Tessa R Smith"
+date: "2024-06-30"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+#STEP 0.1.1: Change the location for your computer. 
+# You can safely use either "\\" or "/" in the path.
+knitr::opts_chunk$set(echo = TRUE, root.dir = "C:/Users/Tessas/OneDrive - University ofTasmaniaTessa_PhD/WORK_Code/CH2_LOCALSCALE/CH2_4thCornerAnalysis_20241114")
+```
+
+######################## 
+
+## INTRODUCTION
+
+######################## 
+
+**BEETLE BIOGEOGRAPHY PROJECT**, University of Tasmania. Data collected
+by Tessa R Smith and volunteers (2020-2022). Code by Tessa Smith based
+on Matthew Fielding Bass Islands birds project, last edited December
+2024.
+
+# **CODE FOR TESSA SMITH THESIS CHAPTER 2**
+
+**AIMS**
+
+-   **AIM 1: 4th corner analysis by traits**
+
+-   **AIM 2: 4th corner analysis by species**
+
+-   **AIM 3: Estimation of beetle biomass per site**
+
+######################## 
+
+## DATA PREPARATION
+
+######################## 
+
+```{r}
+#STEP 0.1.2: Load packages
+library(ade4)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(ncf)
+library(gridExtra)
+library(spdep)
+library(sf)
+library(tidyr)
+library(readxl)
+library(mvabund)
+
+#packages deleted- check it runs again
+#scales, grid, ggspatial, performance, splines, MASS, emmeans
+```
+
+```{r}
+#STEP 0.2.1: Import data (environmental data)
+#Reference: Own data (Tessa Smith PhD)
+#File type: CSV #Format: wide form #Columns: environmental variables #Rows:Sites
+ENVIRONMENTDATA <- read.csv("TS_Site_Enviro_metadata_20230622_noplants.csv", header = TRUE, stringsAsFactors = FALSE)
+
+
+#Remove columns with missing data
+ENVIRONMENTDATA <- ENVIRONMENTDATA[, !names(ENVIRONMENTDATA) %in% c("volume_L", "in_log_covp", "out_plant_covp", "out_moss_covp", "out_barg_covp", "out_rock_covp", "p_Beyeria", "p_Exocarpus", "p_Arthrotaxis", "p_Bursaria", "p_Cassinia", "times_burned", "time_since_fire", "logs_dist", "BIO11", "BIO4")]
+
+# List of site_IDs to be removed
+site_ids_to_remove <- c("CORINNA002", "MOUNTTFIELD001", "MTDUNADAS001", 
+                        "STRATHGORDON001", "STREZLECKI001", "STREZLECKI003", 
+                        "TIMBSTRACK001", "WALDHEIM01")
+
+# Remove rows from ENVIRONMENTDATA where site_ID is in the list
+ENVIRONMENTDATA <- ENVIRONMENTDATA[!ENVIRONMENTDATA$site_ID %in% site_ids_to_remove, ]
+
+# Optionally, check the result
+print(ENVIRONMENTDATA)
+
+View(ENVIRONMENTDATA) #Opens data in another tab so it can be easily viewed
+```
+
+Notes: Keeping p_Dianella which correlates with p_Beyeria, p_Exocarpus
+
+```{r}
+#STEP 0.2.2: Import data (species records)
+#Reference: Own data (Tessa Smith PhD)
+#File type: CSV #Format: long form. #Columns: site_ID, species, specimen_count. #Rows: Individual beetle records
+beetle_records.df <- read.csv("TS_Site_BeetleRecords_20240306.csv", header = TRUE, stringsAsFactors = FALSE)
+
+#Reshapes species list of beetle records from long form into site.count form (wide)
+#Only necessary once before start of analysis
+df_reshaped <- beetle_records.df %>%
+#Change from long to wide format
+pivot_wider(id_cols = site_ID,
+            names_from = species,
+            values_from = species_count,
+            # Sum the entries where there is more than 1 value in specimen_count
+            values_fn = list(species_count= sum)) 
+
+#Change NAs in the new dataset to 0
+df_reshaped[is.na(df_reshaped)] <-0 
+df_reshaped <- na.omit(df_reshaped)
+
+#Change the name
+INSECTDATA <- df_reshaped
+view (INSECTDATA) #Opens data in another tab so it can be easily viewed
+```
+
+```{r}
+#STEP 0.2.3: Remove columns from INSECTDATA that we don't want in the database
+
+#create list of names of columns that we want to remove
+
+columns_to_remove <- c("UNKNOWN_SPECIES",
+"UNKNOWN_SPECIES-Pieces",
+"PELORIDIIDAE_indet.",
+"Hemiodoecus_leai",
+"Hemiodoecellus_fidelis",
+"Choerocoris_paganus",
+"LYCIDAE_indet._(larvae)",
+"Misc._beetles",
+"Hemiptera_(misc.)",
+"Spiders_(misc.)",
+"Opiliones_(misc.)",
+"Mites_(misc.)",
+"Collembola_(misc.)",
+"Millipedes_&_entipedes (misc.)",
+"Earwigs_(misc.)",
+"Hymenoptera_(misc.)",
+"Snails_(misc.)",
+"Other_non-beetle_invertebrates_(misc.)", 
+"STAPHYLINIDAE_indet.")
+
+#STEP 0.3.5: remove the columns
+# Remove the columns from the dataframe
+INSECTDATA <- INSECTDATA[ , !(names(INSECTDATA) %in% columns_to_remove)]
+
+# View the updated dataframe
+view(INSECTDATA)
+```
+
+```{r}
+#STEP 0.2.4.1: Remove rare species (species present in <3 sites)
+#ALTERNATIVE TO REMOVE FROM <5 SITES BELOW, choose the one you want
+
+# Function to remove columns where species is present in less than 3 sites
+remove_infrequent_species <- function(INSECTDATA, threshold = 3) {
+  # Calculate the number of sites each species is present in
+  species_counts <- colSums(INSECTDATA != 0)
+  
+  # Identify columns to keep and to remove
+  columns_to_keep <- species_counts >= threshold
+  columns_to_remove <- species_counts < threshold
+  
+  # Filter the data frame
+  INSECTDATA_filtered <- INSECTDATA[, columns_to_keep]
+  
+  # Print the number of columns included and removed
+  num_included <- sum(columns_to_keep)
+  num_removed <- sum(columns_to_remove)
+  cat("Number of columns included:", num_included, "\n")
+  cat("Number of columns removed:", num_removed, "\n")
+  
+  return(INSECTDATA_filtered)
+}
+
+# Apply the function to INSECTDATA
+INSECTDATA_filtered <- remove_infrequent_species(INSECTDATA, 3)
+
+# Remove rows from INSECTDATA_filtered where site_ID is not in ENVIRONMENTDATA
+INSECTDATA_filtered <- INSECTDATA_filtered[INSECTDATA_filtered$site_ID %in% ENVIRONMENTDATA$site_ID, ]
+
+# Change name back to original name
+INSECTDATA <- INSECTDATA_filtered
+
+# View the result
+view(INSECTDATA)
+```
+
+Notes: works. Final number of columns included is 226. Does not contain
+NAs
+
+```{r}
+#STEP 0.2.4.2: Remove rare species (species present in <5 sites)
+# Function to remove columns where species is present in less than 5 sites
+remove_infrequent_species <- function(INSECTDATA, threshold = 5) {
+  # Calculate the number of sites each species is present in
+  species_counts <- colSums(INSECTDATA != 0)
+  
+  # Identify columns to keep and to remove
+  columns_to_keep <- species_counts >= threshold
+  columns_to_remove <- species_counts < threshold
+  
+  # Filter the data frame
+  INSECTDATA_filtered <- INSECTDATA[, columns_to_keep]
+  
+  # Print the number of columns included and removed
+  num_included <- sum(columns_to_keep)
+  num_removed <- sum(columns_to_remove)
+  cat("Number of columns included:", num_included, "\n")
+  cat("Number of columns removed:", num_removed, "\n")
+  
+  return(INSECTDATA_filtered)
+}
+
+# Apply the function to INSECTDATA
+INSECTDATA_filtered <- remove_infrequent_species(INSECTDATA, 3)
+
+# Remove rows from INSECTDATA_filtered where site_ID is not in ENVIRONMENTDATA
+INSECTDATA_filtered <- INSECTDATA_filtered[INSECTDATA_filtered$site_ID %in% ENVIRONMENTDATA$site_ID, ]
+
+# Change name back to original name
+INSECTDATA <- INSECTDATA_filtered
+
+# View the result
+view(INSECTDATA)
+```
+
+```{r, echo = FALSE}
+#STEP 0.3.1: Import data (beetle trait data)
+#Reference: Own data (Tessa Smith PhD)
+#File type: CSV
+TRAITDATA <- read.csv("TS_Site_TraitRecords_20230628.csv", header = TRUE, stringsAsFactors = FALSE)
+
+#Remove columns with missing data
+TRAITDATA <- TRAITDATA[, !names(TRAITDATA) %in% c("total.count", "no.sites", "prop.site", "vagility", "logs_dist")]
+
+# Remove rows with NA in the specified columns
+TRAITDATA <- TRAITDATA[complete.cases(TRAITDATA[, c("diet", "size", "native", "size.1")]), ]
+
+View(TRAITDATA) #Opens data in another tab so it can be easily viewed
+```
+
+#Notes: Matt Fielding #b.df = site.count (sites as rows, species as
+columns) = INSECTDATA #t.df = trat.data (bird species as rows, species
+traits as columns) = TRAITDATA #s.df = site.env (sites as rows, site
+traits ascolumns) = ENVIRONMENTDATA
+
+```{r}
+#STEP 0.4.1: Convert TRAITDATA into a data frame with species_ID as row names
+trait.df <- data.frame(TRAITDATA,row.names=TRAITDATA$species_ID) 
+
+# Subset the relevant columns
+trait.df <- trait.df[,c(4:6)]
+
+#Remove rows that are not present in INSECTDATA
+# Remove rows from trait.df where species_ID is not a column in INSECTDATA
+species_in_insectdata <- colnames(INSECTDATA)
+trait.df <- trait.df[rownames(trait.df) %in% species_in_insectdata, ]
+
+# Convert specific columns to factors
+trait.df$diet<-as.factor(trait.df$diet)
+trait.df$size<-as.factor(trait.df$size)
+trait.df$native<-as.factor(trait.df$native)
+```
+
+```{r}
+#STEP 0.4.2: Create beetle.df
+beetle.df <- data.frame(INSECTDATA,row.names=INSECTDATA$site_ID)
+```
+
+######################## 
+
+## ENVIRONMENTAL VARIABLE CORRELATION
+
+######################## 
+
+```{r}
+#STEP 0.5.1: Tesing correlation between environmental variables
+#Create site.df with row names and select columns 4:32
+site.df <- data.frame(ENVIRONMENTDATA, row.names = ENVIRONMENTDATA$site_ID)
+
+# Select only numeric columns from the specified range
+site.df <- site.df[, c(4:30)]
+site.df <- site.df[sapply(site.df, is.numeric)]
+
+# Now calculate the Pearson correlation matrix on the filtered data
+cor_matrix <- cor(site.df, method = "pearson")
+
+# Check for high positive correlations (> 0.6)
+high_positive_cor <- cor_matrix > 0.6
+
+# Check for strong negative correlations (< -0.6) with the first column removed
+strong_negative_cor <- cor(site.df[-1], method = "pearson") < -0.6
+
+# Write the correlation matrix to a CSV file
+write.csv(cor_matrix, file = "correlation_matrix.csv", row.names = TRUE)
+
+# Write the high positive correlations to a CSV file
+write.csv(high_positive_cor, file = "high_positive_correlations.csv", row.names = TRUE)
+
+# Write the strong negative correlations to a CSV file
+write.csv(strong_negative_cor, file = "strong_negative_correlations.csv", row.names = TRUE)
+```
+
+Notes: Removing all the plant occurrences because the standard
+deviations are very low.
+
+############################# 
+
+## SPATIAL AUTOCORRELATION
+
+############################# 
+
+```{r}
+#STEP 0.5.1: Testing spatial autocorrelation between sites
+#creates new dataframe
+spp.rich <- beetle.df %>% transmute(site_ID, richness =  rowSums(.[2:ncol(.)] > 0))
+
+# Subset the data frames
+rich.df <- spp.rich[1:62,]
+coord.df <- ENVIRONMENTDATA[1:62, 2:3]
+
+#Convert coord.df to an sf object
+coord.sf <- st_as_sf(coord.df, coords = c("long", "lat"), crs = 4326)
+
+#Calculate the k-nearest neighbors
+knn <- knearneigh(st_coordinates(coord.sf), k = 4)
+
+#Convert the knn object to a neighbor list
+nb <- knn2nb(knn)
+
+#Create a spatial weights object
+lw <- nb2listw(nb, style = "W", zero.policy = TRUE)
+
+#Now lw contains the spatial weights ready for spatial autocorrelation analysis
+```
+
+```{r}
+# STEP 0.5.2: Calculates spatial autocorrelation, prepares the data for plotting, create a correlogram plot
+correlog_plot <- function(mod, title) {
+  # Ensure the showtext package is installed and load it
+  if (!requireNamespace("showtext", quietly = TRUE)) {
+    install.packages("showtext")
+  }
+  library(showtext)
+  
+  # Add Open Sans font
+  font_add_google("Open Sans", "open_sans")
+  showtext_auto()
+  
+  CN.SAC <- correlog(x = coord.df$lat, y = coord.df$long, z = mod$residuals, 
+                     increment = 2, resamp = 500, latlon = TRUE, na.rm = TRUE, quiet = FALSE)
+  
+  CN.RESIDUAL <- as.data.frame(cbind(CN.SAC$n, CN.SAC$mean.of.class, CN.SAC$correlation, CN.SAC$p))
+  colnames(CN.RESIDUAL) <- c("n", "mean", "moransI", "p")
+  
+  ggplot(CN.RESIDUAL, aes(mean, moransI)) + 
+    geom_hline(aes(yintercept = 0), col = "gray30", linetype = "dashed", linewidth = 0.5) +
+    geom_line(color = "grey", linewidth = 1) + 
+    geom_point(aes(colour = cut(p, c(0, 0.05, 1))), linewidth = 2) +
+    scale_color_manual(values = c("(0,0.05]" = "red", "(0.05,1]" = "gray60")) + 
+    ylim(-1.5, 1.5) + 
+    theme_classic(base_size = 80, base_family = "open_sans") + 
+    theme(legend.position = "none") +
+    ylab("Moran's I") + 
+    xlab("Distance (km)") + 
+    ggtitle(title)
+}
+```
+
+```{r}
+# STEP 0.5.3: Spatial autocorrelation analysis
+rich.mod <- lm(richness ~ 1, data=rich.df)
+lm.morantest(rich.mod, lw, alternative = "two.sided")
+tasrich <- correlog_plot(rich.mod, "Tasmania leaf litter beetles - Richness Model")
+
+#Manually perform the Moran's I test to inspect
+morans_result <- lm.morantest(rich.mod, lw, alternative = "two.sided")
+print(morans_result)
+```
+
+```{r}
+#STEP 0.5.4: Create grid species plot
+tiff("C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH2_LOCALSCALE\\CH2_4thCornerAnalysis_20241114\\beetlerichness_spatcor_20240822.tiff", units="in", width=18, height=9, res=300, bg = "transparent")
+spatplots <- grid.arrange(tasrich)
+```
+
+############################# 
+
+## TRAIT-BASED MODEL
+
+############################# 
+
+```{r}
+#STEP 0.6.1: Ensure all species in trait.df are present in tas.beetle by padding with zeros
+all_species <- rownames(trait.df) #Extracts all species names from the rows of the trait.df dataframe (which contains species traits).
+for (species in setdiff(all_species, colnames(beetle.df))) {
+  beetle.df[[species]] <- 0 } # for each species that is present in trait.df but missing in tas.beetle, it adds a new column in tas.beetle filled with zeros, ensuring that both datasets have the same species. This step handles cases where some species have traits but are not observed in the tas.beetle dataset (presumably an abundance or occurrence dataset).
+
+# Align species order in tas.beetle to match trait.df
+beetle.df <- beetle.df[, all_species] #Rearranges the columns of the tas.beetle dataframe to match the order of species in trait.df. This step ensures that both datasets are aligned properly before running the model.
+
+# Run the trait-environment model
+traitmodel <- traitglm(beetle.df, site.df, trait.df, method = "glm1path", family = "negative.binomial") #Fits a Generalized Linear Model (GLM) to analyze the relationship between species abundance (from tas.beetle), environmental variables (from Tas.site), and species traits (from trait.df). The model uses a negative.binomial family to account for overdispersion in count data, and the method glm1path indicates a specific approach within the GLM framework.
+
+# Plot the results
+plot(traitmodel)  # Generates a Dunn-Smyth residual plot to check the fit of the model. This plot helps assess the quality of the model by showing the residuals.
+
+# Extract residuals or coefficients
+summary(traitmodel) # View model summary for coefficients and p-values
+
+# Normal quantile plot
+qqnorm(residuals(traitmodel)) #Creates a normal quantile plot of the model residuals to assess whether the residuals follow a normal distribution, which is an important diagnostic check for model assumptions.
+abline(c(0, 1), col = "red") #Adds a red line with slope 1 and intercept 0 to the quantile plot for reference, indicating the expected distribution if the residuals are normally distributed.
+```
+
+```{r}
+#STEP 0.6.2: Extract the fourth-corner results (assuming it's already a data frame or matrix)
+trait.tasbeetles <- traitmodel$fourth.corner #Extracts the fourth-corner results from the traitmodel. The fourth-corner analysis is used to examine the relationships between species traits and environmental variables.
+
+# Check the structure of the results
+str(trait.tasbeetles) #Checks the structure of the trait.tasbeetles object, giving an overview of its dimensions, variable types, and content.
+
+# Optional: Save the results as a CSV file
+write.csv(trait.tasbeetles, 'C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH2_LOCALSCALE\\CH2_4thCornerAnalysis_20241114\\trait.response_TasBeetles.csv') #Exports the fourth-corner analysis results to a CSV file for further analysis or reporting.
+```
+
+############################# 
+
+## SPECIES-BASED MODEL
+
+############################# 
+
+#### #Run 1, using selection of 22 species
+
+```{r}
+# STEP 0.7.1: Check the dataset before starting modelling
+
+# Calculate the correlation matrix for the dataset `site.df`
+# `use = "complete.obs"` ensures that pairwise correlations ignore missing values.
+cor_matrix2 <- cor(site.df, use = "complete.obs")
+
+# Save the calculated correlation matrix to a CSV file for further inspection or documentation.
+write.csv(cor_matrix2, "correlation_matrix2.csv", row.names = TRUE)
+```
+
+```{r}
+# STEP 0.7.2: Clean the data
+# Define a custom function to remove rows with NA values from a dataframe
+remove_na_rows <- function(df, df_name) {
+  # Identify columns containing missing (NA) values
+  na_columns <- colnames(df)[colSums(is.na(df)) > 0]
+  
+  # Notify the user about columns with missing values
+  if (length(na_columns) > 0) {
+    cat(paste0("Columns with missing values in '", df_name, "' removed:\n"))
+    print(na_columns)
+  } else {
+    # Notify if there are no columns with missing values
+    cat(paste0("No columns with missing values found in '", df_name, "'.\n"))
+  }
+  
+  # Remove rows containing any NA values
+  df_clean <- na.omit(df)
+  
+  # Inform the user about the number of rows retained after cleaning
+  cat(paste0(nrow(df_clean), " rows retained in '", df_name, "' after removing NAs.\n"))
+  
+  return(df_clean)
+}
+
+# Apply the function to both `site.df` and `beetle.df` datasets
+site.df <- remove_na_rows(site.df, "site.df")
+beetle.df <- remove_na_rows(beetle.df, "beetle.df")
+
+# Remove non-numeric columns from `beetle.df`
+beetle.df <- beetle.df[sapply(beetle.df, is.numeric)]
+
+# Remove non-numeric columns from `site.df`
+site.df <- site.df[sapply(site.df, is.numeric)]
+```
+
+```{r}
+# STEP 0.7.3: Filter the beetle dataset to include only specified species
+# List of species to retain
+selected_species <- c(
+  "Sloaneana_tasmaniae", "Geomela_bryophaga", "Pseudostanus_tasmanicus", "Cartodere_australica",
+  "Cryptamorpha_triguttata", "Xynotropis_TFIC_sp_01", "Mandalotus_muscivorus", "Decilaus_nigronotatus",
+  "Decilaus_striatus", "Decilaus_bryophilus", "Exithius_TFIC_sp_01", "Lophixus_major",
+  "Notoceryon_TFIC_sp_B", "Saprosites_mendax", "Nargomorphus_globulus", "Ptinella_TFIC_SP_01",
+  "Quedius_inaqualipennis", "Tasmanityrus_newtoni", "Anepius_koebelei", "Orchesia_pictipennis",
+  "Diemenoma_commoda", "Enhypnon_latitarsis"
+)
+
+# Filter the beetle dataset
+beetle.df <- beetle.df[, colnames(beetle.df) %in% selected_species]
+
+# Ensure `beetle.df` contains integer values
+beetle.df <- round(beetle.df)
+
+# Inform the user about rounding
+cat("Rounded `beetle.df` to integer values for compatibility with count-based models.\n")
+
+# Inform the user about the filtering step
+cat("Filtered `beetle.df` to include only the specified species.\n")
+```
+
+```{r}
+# STEP 0.7.4: Trait-based modelling
+# Attempt the Negative Binomial model
+sppmodel <- tryCatch({
+  traitglm(beetle.df, site.df, method = "glm1path", family = "negative.binomial")
+}, error = function(e) {
+  cat("Error with Negative Binomial model: ", e$message, "\n")
+  NULL
+})
+
+# Check if model fit successfully and plot residuals
+if (!is.null(sppmodel)) {
+  plot(sppmodel) # Dunn-Smyth residual plot
+} else {
+  # Try the Poisson model if the Negative Binomial model fails
+  sppmodel <- tryCatch({
+    traitglm(beetle.df, site.df, method = "glm1path", family = "poisson")
+  }, error = function(e) {
+    cat("Error with Poisson model: ", e$message, "\n")
+    NULL
+  })
+  
+  if (!is.null(sppmodel)) {
+    plot(sppmodel)
+  }
+}
+
+# Check normality of residuals if model fits
+if (!is.null(sppmodel)) {
+  qqnorm(residuals(sppmodel)); abline(c(0, 1), col = "red")
+
+# Ensure output directory exists
+output_dir <- "C:/Users/Tessas/OneDrive - University of Tasmania/Tessa_PhD/WORK_Code/CH2_LOCALSCALE/CH2_4thCornerAnalysis_20241114"
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir, recursive = TRUE)
+  cat("Created output directory:", output_dir, "\n")
+} else {
+  cat("Output directory already exists:", output_dir, "\n")
+}
+
+# Export species response data
+output_file <- file.path(output_dir, "species.response_TasBeetles.csv")
+cat("Attempting to write to file:", output_file, "\n")
+
+tryCatch({
+  write.csv(spp.tasbeetles, output_file)
+  cat("File successfully written to:", output_file, "\n")
+}, error = function(e) {
+  cat("Error writing file:", e$message, "\n")
+})
+```
+
+############################## 
+
+## BIOMASS ESTIMATION
+
+```{r}
+# STEP 0.8.1: Assuming TRAITDATA is already loaded
+# Check if 'size.1' exists in the dataframe before proceeding
+if ("size.1" %in% colnames(TRAITDATA)) {
+  # Add a new column 'Biomass_modifier' based on the condition of 'size.1'
+  TRAITDATA_biomass <- TRAITDATA %>%
+    mutate(Biomass_modifier = ifelse(size.1 < 10, 0.0020, 0.024))
+  
+  # Display the updated dataframe
+  head(TRAITDATA_biomass)
+} else {
+  # Print a message if 'size.1' does not exist
+  cat("Column 'size.1' does not exist in the TRAITDATA dataframe.\n")
+}
+```
+
+```{r}
+# STEP 0.8.2: Convert INSECTDATA to long format
+# Assuming `INSECTDATA` has site_ID as row identifiers and species as column headers
+insectdata_long <- INSECTDATA %>%
+  pivot_longer(
+    cols = -site_ID,                # Exclude site_ID from pivoting
+    names_to = "species_ID",        # Create a column for species IDs
+    values_to = "count"             # Create a column for counts
+  )
+
+# Display the transformed data
+head(insectdata_long)
+```
+
+```{r}
+# STEP 0.8.3: Merge insectdata_long with TRAITDATA_biomass using species_ID
+merged_data <- insectdata_long %>%
+  left_join(TRAITDATA_biomass, by = "species_ID")
+
+# Define a function to calculate biomass based on family and size
+calculate_biomass <- function(family, length, count) {
+  # Handle cases where length is missing
+  if (is.na(length)) {
+    return(NA)
+  }
+  
+  if (is.na(family)) {
+    # Handle missing family values
+    if (length < 10) {
+      biomass <- 0.0020 * (length ^ 3.17) * count
+    } else {
+      biomass <- 0.024 * (length ^ 2.92) * count
+    }
+  } else if (family == "Carabidae") {
+    biomass <- 0.028 * (length ^ 2.75) * count
+  } else if (family == "Staphylinidae") {
+    biomass <- 0.015 * (length ^ 3.10) * count
+  } else if (length < 10) {
+    biomass <- 0.0020 * (length ^ 3.17) * count
+  } else {
+    biomass <- 0.024 * (length ^ 2.92) * count
+  }
+  
+  return(biomass)
+}
+
+# Apply the biomass calculation for each row
+merged_data <- merged_data %>%
+  rowwise() %>%
+  mutate(
+    Biomass = calculate_biomass(
+      family = family,  # Use 'family' for the family column
+      length = size.1,  # Use 'size.1' for beetle length
+      count = count     # Use 'count' for the species count
+    )
+  ) %>%
+  ungroup()
+
+# Summarise total biomass by site_ID
+biomass_by_site <- merged_data %>%
+  group_by(site_ID) %>%
+  summarise(
+    total_biomass = sum(Biomass, na.rm = TRUE)
+  )
+
+# Save summarised biomass by site_ID to a CSV file
+write.csv(biomass_by_site, "total_biomass_by_site.csv", row.names = FALSE)
+
+# Display a message to confirm the file was saved
+cat("Summed biomass by site saved to 'total_biomass_by_site.csv'\n")
+```
+
+```{r}
+# STEP 0.8.4: Load the biomass and abundance dataset
+Biomass_area <- read.csv("biomass_by_site_abundance_area.csv", header = TRUE, stringsAsFactors = FALSE)
+
+# Check the structure of the dataset
+print(head(Biomass_area))
+print(summary(Biomass_area))
+
+# Ensure 'type' and 'amount' columns exist
+if(!"type" %in% colnames(Biomass_area) | !"amount" %in% colnames(Biomass_area)) {
+  stop("The columns 'type' or 'amount' are missing from the Biomass_area dataset.")
+}
+
+# Convert 'amount' to numeric, handling any non-numeric values
+Biomass_area$amount <- as.numeric(Biomass_area$amount)
+
+# Check for any NA values introduced during conversion
+print(sum(is.na(Biomass_area$amount)))
+
+# Reshape the data: Pivot 'type' column to create 'total_biomass' and 'beetles_m2' columns
+library(tidyr)
+Biomass_area_wide <- Biomass_area %>%
+  pivot_wider(
+    names_from = type,
+    values_from = amount,
+    values_fill = list(amount = NA)  # Fill missing values with NA
+  )
+
+# Verify the reshaped data
+print(head(Biomass_area_wide))
+
+# Optional: View the reshaped dataset
+view(Biomass_area_wide)
+```
+
+```{r}
+# STEP 0.8.5: Merge the forest_type column from ENVIRONMENTDATA to Biomass_area_wide using site_ID as the key
+Biomass_area_wide <- merge(
+  x = Biomass_area_wide,
+  y = ENVIRONMENTDATA,
+  by = 'site_ID',
+  all.x = TRUE
+)
+
+# Ensure total_biomass and beetles_per_area are numeric, and forest_type is categorical
+Biomass_area_wide$total_biomass <- as.numeric(as.character(Biomass_area_wide$total_biomass))
+Biomass_area_wide$beetles_per_area <- as.numeric(as.character(Biomass_area_wide$beetles_per_area))
+Biomass_area_wide$forest_type <- factor(Biomass_area_wide$forest_type, levels = c("rainforest", "wet_mixed", "wet"))
+
+# Keep rows with values but ignore missing data for each measurement during plotting
+library(tidyr)
+Biomass_area_long <- Biomass_area_wide %>% 
+  pivot_longer(cols = c(total_biomass, beetles_per_area), names_to = "measurement", values_to = "value")
+
+# Keep rows with non-missing values for either total_biomass or beetles_per_area and only specific forest types
+Biomass_area_long_plot <- Biomass_area_long %>% 
+  filter(!is.na(value) & forest_type %in% c("rainforest", "wet_mixed", "wet"))
+
+# Display the result
+print(Biomass_area_wide)
+```
+
+```{r}
+# STEP 0.8.6: Plot boxplots for Biomass and Beetles per Area by Forest Type, excluding rows with NA in the plotted measurement or forest_type
+ggplot(Biomass_area_long_plot, aes(x = forest_type, y = value, fill = forest_type)) +
+  geom_boxplot(color = "black") +
+  facet_wrap(~measurement, scales = "free_y", labeller = as_labeller(c(
+    total_biomass = "Biomass (mg/m²)",
+    beetles_per_area = "Abundance/m²"
+  ))) +
+  scale_y_continuous(limits = c(0, 450)) +
+  scale_fill_manual(values = c("#3366FF", "#009999", "#009999")) + # Added color for "Mixed"
+  theme_minimal() +
+  theme(
+    strip.text = element_text(face = "bold", size = 12),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    panel.grid = element_blank(), # Remove grid lines
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1) # Add boxes around facets
+  ) +
+  xlab("") + # Remove x-axis label
+  ylab("") # Remove the y-axis label
+```
+
+END DOCUMENT
