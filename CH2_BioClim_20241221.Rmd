@@ -1,0 +1,107 @@
+```{r setup, include=FALSE}
+#STEP 0.1.1: Change the location for your computer. 
+# You can safely use either "\\" or "/" in the path.
+knitr::opts_chunk$set(echo = TRUE, root.dir = "C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH2_LOCALSCALE\\CH2_BioClim_20241117")
+```
+
+## INTRODUCTION
+
+**BEETLE BIOGEOGRAPHY PROJECT**, University of Tasmania. Data collected by Tessa R Smith and volunteers (2020-2022). Code by Tessa Smith, last edited December 2024.
+
+# **CODE FOR TESSA SMITH THESIS CHAPTER 2**
+
+**AIMS**
+
+-   **AIM 1: Download climate variables from Bioclim**
+
+## DATA PREPARATION
+
+```{r}
+#STEP 0.1.2: Load required libraries
+library(raster)
+library(sp)
+library(terra) # Replacement for rgdal raster functionalities
+library(sf)    # Replacement for rgdal spatial vector functionalities
+library(geodata)
+```
+
+Notes: works
+
+```{r}
+# STEP 0.2.1: Import data (environmental data - local)
+# Metadata (includes altitude etc)
+# Reference: Own data (Tessa Smith PhD)
+# File type: CSV # Format: Wide form: Columns - environmental variables, Rows - Sites
+ENVIRONMENTDATA <- read.csv("TS_Site_Enviro_metadata_20230622.csv", header = TRUE, stringsAsFactors = FALSE)
+
+# Ensure the CSV includes columns for site_id, lat (latitude), and long (longitude)
+# If the column names are different, rename them accordingly
+colnames(ENVIRONMENTDATA) <- gsub("\\s+", "_", colnames(ENVIRONMENTDATA)) # Remove spaces if needed
+
+# Verify the required columns are present
+required_cols <- c("site_ID", "lat", "long")  # Replace with the actual column names in your CSV
+if (!all(required_cols %in% colnames(ENVIRONMENTDATA))) {
+  stop("CSV file is missing one or more required columns: 'site_id', 'lat', 'long'.")
+}
+
+# Use the data as the metadata
+metadata <- ENVIRONMENTDATA[, required_cols]
+
+# Print the metadata to verify
+print(metadata)
+```
+
+## EXTRACTING THE BIOCLIMATIC VARIABLES
+
+```{r}
+# STEP 0.3.1: Path to the folder containing bioclimatic data (already saved on computer)
+bioclim_path <- "C:/Users/Tessas/OneDrive - University of Tasmania/Tessa_PhD/WORK_Code/CH2_LOCALSCALE/CH2_BioClim_20241117/wc2.1_2.5m_bio"
+
+# List all .tif files in the directory
+bioclim_files <- list.files(bioclim_path, pattern = "\\.tif$", full.names = TRUE)
+
+# Check if any files were found
+if (length(bioclim_files) == 0) {
+  stop("No .tif files found in the specified directory. Check the path and file extensions.")
+}
+
+# Load raster stack
+bioclim_stack <- rast(bioclim_files)
+
+# Load all bioclimatic layers into a raster stack
+bioclim_stack <- rast(bioclim_files)
+
+# Inspect the names of the layers
+layer_names <- names(bioclim_stack)
+print(layer_names)
+```
+
+```{r}
+# STEP 0.3.2: Adjust the required variables to match the full names
+required_variables <- c("wc2.1_2.5m_bio_1", "wc2.1_2.5m_bio_12", "wc2.1_2.5m_bio_4", "wc2.1_2.5m_bio_15", "wc2.1_2.5m_bio_11")
+
+# Match layers by name
+matched_layers <- layer_names[grepl(paste0("^", required_variables, collapse = "|"), layer_names)]
+
+# Subset the raster stack to the matched layers
+filtered_stack <- subset(bioclim_stack, which(layer_names %in% required_variables))
+```
+
+```{r}
+# STEP 0.3.3: Convert metadata to a spatial object
+metadata_sf <- st_as_sf(metadata, coords = c("long", "lat"), crs = 4326)
+
+# Extract bioclimatic data for each site
+bioclim_data_extracted <- terra::extract(filtered_stack, st_coordinates(metadata_sf))
+
+# Combine extracted data with site metadata
+bioclim_results <- cbind(metadata, bioclim_data_extracted)
+
+# Save results to a CSV
+output_file <- "bioclim_variables_sites.csv"
+write.csv(bioclim_results, output_file, row.names = FALSE)
+
+cat("Bioclimatic variables saved to:", output_file, "\n")
+```
+
+END OF DOCUMENT
