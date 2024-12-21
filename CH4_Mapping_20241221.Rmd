@@ -1,0 +1,1318 @@
+---
+title: "CH3_KernelDistribution"
+author: "Tessa R Smith"
+date: "2024-03-01"
+output: html_document
+---
+
+```{r, echo = FALSE}
+#STEP 0.1.1: Setup packages and working directory
+rm(list = ls()) # clear memory and start afresh
+
+#Change the location for your computer. 
+#NOTE make sure you use \\ instead of \ or /, as these result in errors. 
+setwd("C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH4_PHYLOGEOGRAPHY\\CH4_Mapping_unfinished")
+```
+
+######################## 
+
+## INTRODUCTION
+
+######################## 
+
+**BEETLE BIOGEOGRAPHY PROJECT**, University of Tasmania. Data collected by Tessa R Smith and volunteers (2020-2022). Code by Tessa Smith, last edited December 2024.
+
+# **CODE FOR TESSA SMITH THESIS CHAPTER 3 and 4**
+
+**AIMS**
+
+**AIM 1:Exploratory data analysis, Kernel distribution of morphospecies with \>5 localities** **AIM 2:Plot species occurrences and MCPs, morphospecies with \>5 localities** **AIM 3:Plot species occurrences and MCPs, rare species** **AIM 4:Plot species occurrences and MCPs, rare and common species**
+
+######################## 
+
+## DATA PREPARATION
+
+######################## 
+
+```{r}
+#STEP 0.1.2:Load packages
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library(sf)
+library(ks)
+library(eks)
+library(terra)
+library(MASS)  # kde2d function
+library(officer)
+library(rvg)
+library(raster)
+library(tidyr)
+library(viridis)
+library(concaveman) # For generating convex hulls
+library(adehabitatHR)
+library(sp)
+library(ggspatial)
+library(adehabitatHR)
+library(spatstat)
+```
+
+```{r, echo = FALSE}
+#STEP 0.2.1: Import data
+#Metadata (includes altitude etc)
+#Reference: Own data (Tessa Smith PhD)
+#File type: CSV
+#Format: long form. #Columns: site_ID, species, specimen_count. #Rows: Individual records
+beetle_records.df <- read.csv("TS_Site_BeetleRecords_20240702_ALAinc.csv", header = TRUE, stringsAsFactors = FALSE)
+View(beetle_records.df) #Opens data in another tab so it can be easily viewed
+```
+
+```{r}
+#STEP 0.2.2: Import data
+#Reference: ALA
+#File type: CSV
+ALA_records.df <- read.csv("Ch4_Other_records_species.csv", header = TRUE, stringsAsFactors = FALSE)
+View(ALA_records.df) #Opens data in another tab so it can be easily viewed
+```
+
+```{r}
+#STEP 0.2.3:Import Orchesia and add to ALA data
+# Load the Orchesia_records.csv file
+Orchesia_records <- read.csv("Orchesia_records.csv", stringsAsFactors = FALSE)
+
+# Subset the data to include only the necessary columns
+Orchesia_subset <- Orchesia_records %>%
+  mutate(
+    genus = gsub(" ", "_", genus),  # Replace spaces with underscores in genus
+    originalNameUsage = gsub(" ", "_", originalNameUsage)  # Replace spaces with underscores in species
+  ) %>%
+  dplyr::select(  # Explicitly use dplyr::select to avoid conflicts
+    genus,
+    originalNameUsage,
+    decimalLatitude,
+    decimalLongitude
+  ) %>%
+  rename(
+    species = originalNameUsage,
+    lat = decimalLatitude,
+    long = decimalLongitude
+  ) %>%
+  mutate(species_count = 1) %>%  # Add species_count column with a value of 1
+  filter(!is.na(species) & species != "", genus == "Orchesia")  # Remove rows with blank species and ensure genus is 'Orchesia'
+
+# Assuming combined_ALA is already loaded into the R environment
+# Bind the new data to the existing dataset
+combined_ALA <- bind_rows(combined_ALA, Orchesia_subset)
+
+# Preview the updated dataset
+head(combined_ALA)
+
+```
+
+```{r, echo = FALSE}
+#STEP 0.3.1: Reshapes species list of beetle records from long form into site.count form (wide)
+#Only necessary once before start of analysis
+df_reshaped <- beetle_records.df %>%
+#Change from long to wide format
+pivot_wider(id_cols = site_ID,
+            names_from = species,
+            values_from = species_count,
+            # Sum the entries where there is more than 1 value in specimen_count
+            values_fn = list(species_count= sum))  
+
+#Change NAs in the new dataset to 0
+df_reshaped[is.na(df_reshaped)] <-0 
+df_reshaped <- na.omit(df_reshaped)
+view(df_reshaped)
+```
+
+```{r, echo = FALSE}
+#STEP 0.3.2: Add new columns, Count abundance number for each site, Count species number for each site, Count unique species for each site
+df_reshaped_counts <- df_reshaped %>% 
+  mutate(abundance = rowSums(.[, -1]),  # Sum all values from columns other than the first one
+    species_count = rowSums(.[-1] > 0),  # Count numbers of columns >0
+    unique_species = rowSums((.[, -1] > 0) * (colSums(.[-1] > 0) == 1))  # Count number of columns with a value >0 that occur in no other row
+  )
+view (df_reshaped_counts)
+```
+
+```{r, echo = FALSE}
+#STEP 0.4.1: Import data (environmental data(local))
+#Metadata (includes altitude etc)
+#Reference: Own data (Tessa Smith PhD)
+#File type: CSV
+#Format: wide form #Columns: environmental variables #Rows:Sites
+Metadata <- read.csv("TS_Site_Enviro_metadata_20240702_ALAinc.csv", header = TRUE, stringsAsFactors = FALSE)
+View(Metadata) #Opens data in another tab so it can be easily viewed
+```
+
+```{r}
+# STEP 0.4.2: Add latitude and longitude from metadata to beetle_records.df
+
+# Merge the dataframes based on the 'site_ID' column
+beetle_records.df2 <- merge(df_reshaped_counts, Metadata, by = "site_ID", all.x = TRUE)
+
+# Ensure that there are no duplicate 'site_ID' values
+beetle_records.df2 <- beetle_records.df2 %>%
+  distinct(site_ID, .keep_all = TRUE)
+
+# Get all column names from the merged dataframe except 'abundance', 'species_count' and 'unique_species'
+cols_to_keep <- setdiff(names(beetle_records.df2), c("abundance", "species_count", "unique_species"))
+
+# Ensure 'lat' and 'long' are included in the columns to keep
+cols_to_keep <- unique(c("site_ID", "lat", "long", cols_to_keep))
+
+# Select the specified columns without using all_of
+beetle_records.df2 <- beetle_records.df2[, cols_to_keep]
+
+# View the updated 'beetle_records.df2'
+View(beetle_records.df2)
+
+# Write the data frame to a CSV file including row names
+write.csv(beetle_records.df2, "beetle_records.df2.csv", row.names = TRUE)
+```
+
+```{r}
+# STEP 0.4.3: Subset the dataframe to only include columns 1 to 707
+beetle_subset <- beetle_records.df2[, 1:707]
+
+# Reshape data to long format using columns 4 to 707 for species observations
+beetle_long <- beetle_subset %>%
+  pivot_longer(cols = 4:707, names_to = "species", values_to = "count") %>%
+  filter(count > 0)  # Keep only records where species is present
+
+# Count the number of sites each species is present at and filter out species with fewer than 5 sites
+species_counts <- beetle_long %>%
+  group_by(species) %>%
+  summarise(site_count = n()) %>%
+  filter(site_count >= 5)
+
+# Filter beetle_long to only include species with at least 5 occurrences
+beetle_long <- beetle_long %>%
+  filter(species %in% species_counts$species)
+
+# Save beetle_long as a .csv file
+write.csv(beetle_long, "beetle_long.csv", row.names = FALSE)
+
+# View the result
+view(beetle_long)
+```
+
+```{r, echo = FALSE}
+#STEP 0.5.1: TASMANIAN STATE POLYGON
+#Black outline of Tasmania
+#Reference: Tasmanian Government
+#File type: shapefile
+TasPolygon_shp <- st_read("C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH3_BROADSCALE\\CH3_KernelDensity_20241114\\TAS_STATE_POLYGON_shp_GDA2020.shp")
+
+view(TasPolygon_shp)
+```
+
+```{r, echo = FALSE}
+#STEP 0.5.2: Define plot boundaries (state of Tasmania)
+xlim <- c(143.8186, 148.5031)
+ylim <- c(-43.74297, -39.19198)
+```
+
+```{r}
+#STEP 0.6.1: Upload rainforest and wet forest extents
+rainforest_extent_sf <- st_read("path_to_shapefile.shp")
+wetforest_extent_sf <- st_read("path_to_shapefile.shp")
+```
+
+######################## 
+
+## DATA ANALYSIS
+
+######################## 
+
+**AIM 1:Exploratory data analysis, Kernel distribution of morphospecies with \>5 localities** Code source: <https://cran.r-project.org/web/packages/eks/vignettes/tidysf_kde.html>
+
+Requirements: Species occurrences, Tasmania polygon KDE = kernel density estimator
+
+```{r}
+#STEP 2.1.1: Case study species for Ch4: Decilaus striatus, Geomela bryophaga and Hemiodoecus leai
+
+# Define the species to loop over
+species_list <- c("Decilaus_striatus", "Geomela_bryophaga", "Hemiodoecus_leai")
+
+# Function to process data for a specific species
+process_species_data <- function(species_name) {
+  # Create dynamic column name based on species
+  species_col <- species_name
+  
+# Load the occurrence records
+  species_records <- beetle_records.df2 %>%
+    dplyr::select(long, lat, !!sym(species_col))  # Adjust column names as needed
+  
+#: Rename abundance column
+  species_records <- species_records %>%
+    dplyr::rename(abundance = !!sym(species_col))
+  
+# Remove all rows that have <1 in the abundance column
+  species_records <- species_records %>%
+    dplyr::filter(abundance >= 1)
+  
+  # View the records (optional, remove if running in non-interactive environment)
+  # View(species_records)
+  
+# Ensure species_records is an sf object with proper geometry
+  species_records <- st_as_sf(species_records, coords = c("long", "lat"), crs = st_crs(TasPolygon_shp))
+  
+# Calculate kernel density estimate
+  skde1 <- st_kde(species_records)
+  
+# Create the plot
+  plot <- ggplot(skde1) +
+    geom_sf(data = TasPolygon_shp, col = 8, size = 0.5) + 
+    geom_sf(data = st_get_contour(skde1), colour = 1, fill = NA, show.legend = FALSE) + 
+    coord_sf(xlim = xlim, ylim = ylim) + 
+    ggthemes::theme_map() +
+    ggtitle(paste("Kernel Density Estimate for", gsub("_", " ", species_name)))
+  
+# Display the plot
+  print(plot)
+  
+# Save the plot
+  file_name <- paste0(species_name, "_plot.png")
+  ggsave(file_name, plot)
+  
+#  Return the plot object
+  return(plot)
+}
+
+# Loop over the species list and process data for each species
+species_plots <- lapply(species_list, process_species_data)
+
+# Name the list elements with species names
+names(species_plots) <- species_list
+
+# Return the list of plots
+species_plots
+```
+
+```{r}
+#STEP 2.1.2: Run previous code for all other species (present at >5 sites)
+
+# Define the range of columns to check
+start_col <- 4
+end_col <- 879
+step <- 2
+
+# Extract the column names for the specified range with the step of 2
+columns_to_check <- colnames(beetle_records.df2)[seq(start_col, end_col, step)]
+
+# Filter columns to keep only those with abundance >= 1 in at least 5 sites
+species_list <- sapply(columns_to_check, function(col) {
+  if (sum(beetle_records.df2[[col]] >= 1, na.rm = TRUE) >= 5) {
+    return(col)
+  } else {
+    return(NULL)
+  }
+})
+species_list <- species_list[!sapply(species_list, is.null)]
+
+# Function to process data for a specific species
+process_species_data <- function(species_name) {
+  # Create dynamic column name based on species
+  species_col <- species_name
+  
+  # Load the occurrence records
+  species_records <- beetle_records.df2 %>%
+    dplyr::select(long, lat, !!sym(species_col))  # Adjust column names as needed
+  
+  # Rename abundance column
+  species_records <- species_records %>%
+    dplyr::rename(abundance = !!sym(species_col))
+  
+  # Remove all rows that have <1 in the abundance column
+  species_records <- species_records %>%
+    dplyr::filter(abundance >= 1)
+  
+  # Remove rows with missing coordinates
+  species_records <- species_records[!is.na(species_records$long) & !is.na(species_records$lat), ]
+  
+  # Ensure species_records is an sf object with proper geometry
+  species_records <- st_as_sf(species_records, coords = c("long", "lat"), crs = st_crs(TasPolygon_shp))
+  
+  # Calculate kernel density estimate
+  skde1 <- st_kde(species_records)
+  
+  # Create the plot
+  plot <- ggplot(skde1) +
+    geom_sf(data = TasPolygon_shp, col = 8, size = 0.5) + 
+    geom_sf(data = st_get_contour(skde1), colour = 1, fill = NA, show.legend = FALSE) + 
+    coord_sf(xlim = xlim, ylim = ylim) + 
+    ggthemes::theme_map() +
+    ggtitle(paste("Kernel Density Estimate for", gsub("_", " ", species_name)))
+  
+  # Display the plot
+  print(plot)
+  
+  # Define the folder where you want to save the plots
+  KDEoutput_folder <- "C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH3_BROADSCALE\\CH3_analysis6_KernelDensity\\KDE_images_v2\\"
+  
+  # Ensure the folder exists
+  if(!dir.exists(KDEoutput_folder)) {
+    dir.create(KDEoutput_folder, recursive = TRUE)
+  }
+  
+  # Save the plot as a file
+  file_name <- paste0(KDEoutput_folder, species_name, "_plot.png")
+  ggsave(file_name, plot)
+  
+  # Return the plot object and file name
+  return(list(plot = plot, file_name = file_name))
+}
+
+# Loop over the filtered species list and process data for each species
+species_plots <- lapply(species_list, process_species_data)
+
+# Name the list elements with species names
+names(species_plots) <- species_list
+
+# Create a new Word document
+doc <- read_docx()
+
+# Loop through the list of plots and add each plot to the Word document
+for (species_name in names(species_plots)) {
+  plot_info <- species_plots[[species_name]]
+  plot <- plot_info$plot
+  file_name <- plot_info$file_name
+  
+# Add a title for the plot
+  doc <- doc %>%
+    body_add_par(paste("Kernel Density Estimate for", gsub("_", " ", species_name)), style = "heading 1") %>%
+    body_add_img(file_name, width = 6, height = 6)  # Adjust width and height as needed
+}
+
+# Save the Word document
+print(doc, target = "Kernel_Density_Estimates.docx")
+
+# Return the list of plots
+species_plots
+```
+
+**AIM 2:Plot species occurrences and MCPs, morphospecies with \>5 localities**
+
+```{r}
+
+# Datasets used
+# beetle_long
+
+#STEP 3.1.1: Remove rows with missing latitude or longitude and records at (0, 0)
+beetle_long_clean <- beetle_long %>%
+  filter(!is.na(lat) & !is.na(long) & !(lat == 0 & long == 0))
+
+# Convert the cleaned dataset to an sf object for spatial plotting
+beetle_long_sf <- st_as_sf(beetle_long_clean, coords = c("long", "lat"), crs = st_crs(TasPolygon_shp))
+
+# Function to generate a distribution map with MCP for a given species
+generate_distribution_map <- function(species_name) {
+  # Filter data for the selected species
+  species_data <- beetle_long_sf %>%
+    filter(species == species_name)
+  
+  # If no data exists for the species, skip plotting
+  if (nrow(species_data) == 0) {
+    message(paste("No data for species:", species_name, "- skipping."))
+    return(NULL)
+  }
+  
+  # Generate the minimum convex polygon (MCP) around the points
+  mcp <- species_data %>%
+    st_combine() %>%              # Combine all points into one geometry
+    st_convex_hull()              # Create a convex hull
+  
+  # Create the distribution map with MCP and points
+  p <- ggplot() +
+    geom_sf(data = TasPolygon_shp, fill = "lightgrey", color = "black", alpha = 0.5) +  # Background polygon
+    geom_sf(data = mcp, fill = "blue", alpha = 0.3, color = "blue") +                 # MCP polygon
+    geom_sf(data = species_data, aes(color = species), size = 2, show.legend = FALSE) +  # Species points
+    labs(
+      title = paste("Distribution Map with MCP for", species_name),
+      x = "Longitude",
+      y = "Latitude"
+    ) +
+    theme_minimal()
+  
+  # Save the plot with the species name in the file name
+  file_name <- paste0("mapof_", gsub(" ", "_", species_name), "_MCP.png")
+  ggsave(file_name, plot = p, width = 8, height = 6)
+  
+  # Return the MCP geometry for the combined map
+  return(mcp)
+}
+
+# Get the unique species names
+species_list <- unique(beetle_long_clean$species)
+
+# Initialize a list to store all MCPs for the combined map
+all_mcps <- list()
+
+# Loop through the species list and generate maps
+for (species in species_list) {
+  mcp <- generate_distribution_map(species)
+  if (!is.null(mcp)) {
+    all_mcps[[species]] <- mcp
+  }
+}
+
+# Combine all MCPs into one sf object
+combined_mcps <- do.call(st_union, all_mcps) #ERROR HERE
+
+# Create a combined map of all species' MCPs
+combined_map <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = "lightgrey", color = "black", alpha = 0.5) +  # Background polygon
+  geom_sf(data = combined_mcps, fill = "red", alpha = 0.2, color = "red") +          # Combined MCP polygons
+  labs(
+    title = "Combined Distribution Map with All MCPs",
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme_minimal()
+
+# Save the combined map
+ggsave("combined_distribution_map_MCPs.png", plot = combined_map, width = 10, height = 8)
+
+# Optionally print the combined map
+print(combined_map)
+
+```
+
+**AIM 3:Plot species occurrences and MCPs, focus species**
+
+```{r}
+#STEP 4.1.1: Rename the species_count column in ALA_records.df to count
+ALA_records.df <- ALA_records.df %>% 
+  rename(count = species_count)
+```
+
+```{r}
+#STEP 4.1.2: Extract the genus information from the species column in ALA_records.df
+ALA_records.df <- ALA_records.df %>% 
+  mutate(genus = sub("_.*", "", species))
+
+# Add a genus column to beetle_long by extracting the genus from the species column
+beetle_long <- beetle_long %>% 
+  mutate(genus = sub("_.*", "", species))
+
+# Select the required columns from each dataframe
+beetle_long_selected <- beetle_long %>% 
+  dplyr::select(lat, long, genus, species, count)
+
+ALA_records_selected <- ALA_records.df %>% 
+  dplyr::select(lat, long, genus, species, count)
+
+# Combine the two dataframes
+combined_ALA <- bind_rows(beetle_long_selected, ALA_records_selected)
+
+# View the combined data
+head(combined_ALA)
+```
+
+```{r}
+#STEP 4.1.3: Filter for specific genera and update genus names
+combined_ALA <- combined_ALA %>% 
+  filter(genus %in% c("Decilaus", "Geomela", "Hemiodoecus", "Hemiodoecellus", "Orchesia")) %>% 
+  mutate(genus = ifelse(genus %in% c("Hemiodoecus", "Hemiodoecellus"), "Peloridiidae", genus))
+
+# View the combined data
+head(combined_ALA)
+```
+
+```{r}
+#STEP 4.2.1: Map of Geomela species (all)
+# Filter data for the genus Geomela
+geomela_data <- combined_ALA %>% filter(genus == "Geomela")
+
+# Define a custom colour palette with shades of green
+custom_palette <- c("#006400", "#228B22", "#3dd500", "#7CFC00", "#ADFF2F")
+
+# Plot combined species with different colours and MCPs
+# Calculate MCPs for each species
+species_mcp <- geomela_data %>%
+  group_by(species) %>%
+  summarise(
+    geometry = st_union(st_as_sf(cur_data(), coords = c("long", "lat"), crs = 4326)),
+    .groups = "drop"
+  ) %>%
+  mutate(geometry = st_convex_hull(geometry)) %>%
+  st_as_sf()
+
+# Create combined plot
+geomela_plot <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+  geom_sf(data = species_mcp, aes(fill = species), alpha = 0.2, color = "darkgreen", linetype = "dashed") +
+  geom_point(data = geomela_data, aes(x = long, y = lat, color = species), size = 2) +
+  scale_color_manual(name = "Species", values = custom_palette) +
+  scale_fill_manual(name = "Species", values = custom_palette) +
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "Combined Distribution of Geomela Species with MCPs", x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Save the Geomela plot as a PNG file with high resolution
+ggsave("Geomela_Distribution_Plot.png", geomela_plot, device = "png", width = 11.69, height = 8.27, dpi = 300)
+
+# Display the Geomela plot
+print(geomela_plot)
+```
+
+```{r}
+#STEP 4.2.2: Map of Geomela bryophaga distribution
+# Filter data for Geomela bryophaga
+bryophaga_data <- combined_ALA %>% filter(species == "Geomela_bryophaga")
+
+# Plot MCP for Geomela bryophaga
+# Calculate MCP for Geomela bryophaga
+bryophaga_mcp <- bryophaga_data %>%
+  summarise(
+    geometry = st_union(st_as_sf(cur_data(), coords = c("long", "lat"), crs = 4326))
+  ) %>%
+  mutate(geometry = st_convex_hull(geometry)) %>%
+  st_as_sf()
+
+# Create plot for Geomela bryophaga
+bryophaga_plot <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+  geom_sf(data = bryophaga_mcp, fill = "#3dd500", alpha = 0.2, color = "red", linetype = "dashed") +
+  geom_point(data = bryophaga_data, aes(x = long, y = lat), color = "#3dd500", size = 2) +
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "Distribution of Geomela bryophaga with MCP", x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Save the plot as a PNG file with high resolution
+ggsave("Geomela_bryophaga_Distribution_Plot.png", bryophaga_plot, device = "png", width = 11.69, height = 8.27, dpi = 300)
+
+# Display the plot
+print(bryophaga_plot)
+```
+
+```{r}
+#STEP 4.2.3:Generate home range for Geomela bryophaga
+
+#Load packages
+library(adehabitatHR)
+library(sp)
+
+#Data input
+#bryophaga_mcp
+
+#Calculates the home ranges bryophaga
+bryophaga.mcp.area <- mcp.area(bryophaga_mcp$, percent = 95), unout = "km2")
+
+#Look at the table
+bryophaga.mcp.area
+```
+
+```{r}
+#STEP 4.2.4: Map of Geomela bryophaga distribution without minimum convex polygon
+# Filter data for Geomela bryophaga
+bryophaga_data <- combined_ALA %>% filter(species == "Geomela_bryophaga")
+
+# Create plot for Geomela bryophaga
+bryophaga_plot2 <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+    geom_point(data = bryophaga_data, aes(x = long, y = lat), color = "#3dd500", size = 2) +
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "Distribution of Geomela bryophaga", x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Save the plot as a PNG file with high resolution
+ggsave("Geomela_bryophaga_Distribution_Plot.png", bryophaga_plot2, device = "png", width = 23.38, height = 16.54, dpi = 300)
+
+# Display the plot
+print(bryophaga_plot2)
+```
+
+```{r}
+#STEP 4.3.1: Map of Peloridiidae species
+# Filter data for the genus Peloridiidae
+peloridiidae_data <- combined_ALA %>% filter(genus == "Peloridiidae")
+
+# Define a custom colour palette with shades of purple and pink
+custom_palette <- c( "#9932CC", "#A01A7D")
+
+# Plot combined species with different colours and MCPs
+# Calculate MCPs for each species
+species_mcp <- peloridiidae_data %>%
+  group_by(species) %>%
+  summarise(
+    geometry = st_union(st_as_sf(cur_data(), coords = c("long", "lat"), crs = 4326)),
+    .groups = "drop"
+  ) %>%
+  mutate(geometry = st_convex_hull(geometry)) %>%
+  st_as_sf()
+
+# Create combined plot
+peloridiidae_plot <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+  geom_sf(data = species_mcp, aes(fill = species), alpha = 0.2, color = "purple", linetype = "dashed") +
+  geom_point(data = peloridiidae_data, aes(x = long, y = lat, color = species), size = 2) +
+  scale_color_manual(name = "Species", values = custom_palette) +
+  scale_fill_manual(name = "Species", values = custom_palette) +
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "Combined Distribution of Peloridiidae Species with MCPs", x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Save the Peloridiidae plot as a PNG file
+ggsave("Peloridiidae_Distribution_Plot.png", peloridiidae_plot, device = "png", width = 11.69, height = 8.27, dpi = 300)
+
+# Display the Peloridiidae plot
+print(peloridiidae_plot)
+```
+
+```{r}
+#STEP 4.3.2: Map of Hemiodoecus leai distribution
+# Filter data for Hemiodoecus leai
+leai_data <- combined_ALA %>% filter(species == "Hemiodoecus_leai")
+
+# Plot MCP for Hemiodoecus leai
+# Calculate MCP for Hemiodoecus leai
+leai_mcp <- leai_data %>%
+  summarise(
+    geometry = st_union(st_as_sf(cur_data(), coords = c("long", "lat"), crs = 4326))
+  ) %>%
+  mutate(geometry = st_convex_hull(geometry)) %>%
+  st_as_sf()
+
+# Create plot for Hemiodoecus leai
+leai_plot <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+  geom_sf(data = leai_mcp, fill = "#A01A7D", alpha = 0.2, color = "red", linetype = "dashed") +
+  geom_point(data = leai_data, aes(x = long, y = lat), color = "#A01A7D", size = 2) +
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "Distribution of Hemiodoecus leai with MCP", x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Save the plot as a PNG file with high resolution
+ggsave("Hemiodoecus_leai_Distribution_Plot.png", leai_plot, device = "png", width = 11.69, height = 8.27, dpi = 300)
+
+# Display the plot
+print(leai_plot)
+```
+
+```{r}
+#STEP 4.3.3: Map of Hemiodoecus leai distribution without MCP
+# Filter data for Hemiodoecus leai
+lea_plot2_data <- combined_ALA %>% filter(species == "Hemiodoecus_leai")
+
+# Create plot for Hemiodoecus leai without MCP
+lea_plot2 <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+  geom_point(data = lea_plot2_data, aes(x = long, y = lat), color = "#A01A7D", size = 2) +
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "Distribution of Hemiodoecus leai", x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Save the plot as a PNG file with high resolution and double dimensions
+ggsave("Hemiodoecus_leai_Distribution_Plot.png", lea_plot2, device = "png", width = 23.38, height = 16.54, dpi = 300)
+
+# Display the plot
+print(lea_plot2)
+```
+
+```{r}
+#STEP 4.4.1: Map of Decilaus species
+# Filter data for the genus Decilaus
+decilaus_data <- combined_ALA %>% filter(genus == "Decilaus")
+
+# Define a gradient colour palette from yellow to red to brown with at least 59 options
+custom_palette <- colorRampPalette(c("#FFD700", "#FFA500", "#FF4500", "#8B0000", "#B8860B"))(59)
+
+# Plot combined species with different colours and MCPs
+# Calculate MCPs for each species
+species_mcp <- decilaus_data %>%
+  group_by(species) %>%
+  summarise(
+    geometry = st_union(st_as_sf(cur_data(), coords = c("long", "lat"), crs = 4326)),
+    .groups = "drop"
+  ) %>%
+  mutate(geometry = st_convex_hull(geometry)) %>%
+  st_as_sf()
+
+# Create combined plot
+combined_plot <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+  geom_sf(data = species_mcp, aes(fill = species), alpha = 0.2, color = "brown", linetype = "dashed") +
+  geom_point(data = decilaus_data, aes(x = long, y = lat, color = species), size = 2) +
+  scale_color_manual(name = "Species", values = custom_palette) +
+  scale_fill_manual(name = "Species", values = custom_palette) +
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    legend.key.size = unit(0.5, "cm"), # Reduce key size
+    legend.text = element_text(size = 8) # Reduce text size for the legend
+  )
+
+# Save the plot as a PNG file with specified dimensions (width = 25 cm, height = 12.05 cm)
+ggsave("Decilaus_Distribution_Plot.png", combined_plot, device = "png", 
+       width = 25 / 2.54, height = 12.05 / 2.54, dpi = 300, units = "in")
+
+# Display the combined plot
+print(combined_plot)
+
+```
+
+```{r}
+#STEP 4.4.2: Map of Decilaus striatus distribution without minimum convex polygon
+# Filter data for Decilaus striatus
+striatus_data <- combined_ALA %>% filter(species == "Decilaus_striatus")
+
+# Create plot for Decilaus striatus
+striatus_plot2 <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+  geom_point(data = striatus_data, aes(x = long, y = lat), color = "#dc7e25", size = 2) +
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "Distribution of Decilaus striatus", x = "Longitude", y = "Latitude") +
+  theme_minimal() + 
+  theme(legend.position = "none")
+
+# Save the plot as a PNG file with high resolution and doubled size
+ggsave("Decilaus_striatus_Distribution_Plot.png", 
+       striatus_plot2, 
+       device = "png", 
+       width = 23.38,  # Doubled width
+       height = 16.54, # Doubled height
+       dpi = 300)
+
+# Display the plot
+print(striatus_plot2)
+```
+
+```{r}
+#STEP 4.4.3:Updated Decilaus maps
+
+# Map of Decilaus striatus distribution without minimum convex polygon
+# Filter data for Decilaus striatus
+striatus_data <- combined_ALA %>% filter(genus== "Decilaus")
+
+# Corrected grouping logic to use the `species` column
+Decilaus_subset <- Decilaus_subset %>%
+  mutate(
+    species = case_when(  # Combine specific groups
+      species %in% c("Decilaus_BA1_(sp._erect_setae)", "Decilaus_BA1_(sp._decumbent_setae)", "Decilaus_BA1_(nr._striatus)") ~ "Decilaus_BA1",
+      species %in% c("Decilaus_nigronotatus", "Decilaus_nigronotatus_(profemurs_dentate)", "Decilaus_cf_nigronotatus", "Decilaus_nigronotatus_(profemurs_edentate)") ~ "Decilaus_nigronotatus",
+      species %in% c("Decilaus_BA2_(unsorted)", "Decilaus_BA2_(unplaced_species)") ~ "Decilaus_BA2",
+      species %in% c("Decilaus_TFIC_sp_01_", "Decilaus_TFIC_sp_01") ~ "Decilaus_TFIC_sp_01",
+      species %in% c("Decilaus_sp_nr_lateralis", "Decilaus_Group_BC:_lateralis_+_suturalis", "Decilaus_suturalis", "Decilaus_lateralis") ~ "Decilaus_lateralis",
+      species %in% c("Decilaus_sp_nr_striatus", "Decilaus_striatus") ~ "Decilaus_striatus",
+      species %in% c("Decilaus_sp_nr_albonotatus", "Decilaus_albonotatus") ~ "Decilaus_albonotatus",
+      species %in% c("Decilaus_sp_nr_bryophilus", "Decilaus_bryophilus") ~ "Decilaus_bryophilus",
+      species %in% c("Decilaus_cf_seriatopunctatus", "Decilaus_seriatopunctatus") ~ "Decilaus_seriatopunctatus",
+      species %in% c("Decilaus_cf_auricomus", "Decilaus_auricomus") ~ "Decilaus_auricomus",
+      species %in% c("Decilaus_BC_(unplaced_TFIC_sp_03)", "Decilaus_TFIC_sp_03") ~ "Decilaus_TFIC_sp_03",
+      species %in% c("Decilaus_BC2:_lateralis", "Decilaus_lateralis") ~ "Decilaus_lateralis",
+      TRUE ~ species
+    )
+  )
+
+
+# Print all species in striatus_subset
+striatus_species <- Decilaus_subset %>%
+  pull(species) %>%
+  unique()
+
+print("Species in striatus_subset:")
+print(striatus_species)
+
+# Map of Decilaus species
+# Filter data for species in striatus_species
+decilaus_data <- Decilaus_subset %>% 
+  filter(species %in% striatus_species)
+
+# Create individual maps for each species
+species_list <- unique(decilaus_data$species)
+
+for (sp in species_list) {
+  # Filter data for the specific species
+  species_data <- decilaus_data %>% filter(species == sp)
+
+  # Calculate MCP for the species
+  species_mcp <- species_data %>%
+    summarise(
+      geometry = st_convex_hull(st_union(st_as_sf(species_data, coords = c("long", "lat"), crs = 4326))),
+      .groups = "drop"
+    ) %>%
+    st_as_sf()
+
+  # Create the plot for the species
+  species_plot <- ggplot() +
+    geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+    geom_sf(data = species_mcp, fill = "#dc7e25", alpha = 0.2, color = "#dc7e25", linetype = "dashed") +
+    geom_point(data = species_data, aes(x = long, y = lat), color = "#dc7e25", size = 2) +
+    labs(title = paste("Distribution of", sp), x = "Longitude", y = "Latitude") +
+    theme_minimal()
+
+  # Save the plot for the species
+  ggsave(paste0("Distribution_Plot_", sp, ".png"), species_plot, device = "png", 
+         width = 25 / 2.54, height = 12.05 / 2.54, dpi = 300, units = "in")
+
+  # Optionally, display the plot
+  print(species_plot)
+}
+
+```
+
+```{r}
+#STEP 4.5.1: Map of Orchesia species
+# Filter data for the genus Orchesia, excluding 'Orchesia_sp.'
+orchesia_data <- combined_ALA %>% 
+  filter(genus == "Orchesia", species != "Orchesia_sp._")
+
+# Define a gradient colour palette from yellow to red to brown with at least 59 options
+custom_palette <- colorRampPalette(c("#FFD700", "#FFA500", "#FF4500", "#8B0000", "#B8860B"))(59)
+
+# Plot combined species with different colours and MCPs
+# Calculate MCPs for each species
+species_mcp <- orchesia_data %>%
+  group_by(species) %>%
+  summarise(
+    geometry = st_union(st_as_sf(pick(long, lat), coords = c("long", "lat"), crs = 4326)),
+    .groups = "drop"
+  ) %>%
+  mutate(geometry = st_convex_hull(geometry)) %>%
+  st_as_sf()
+
+# Create combined plot
+combined_plot <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+  geom_sf(data = species_mcp, aes(fill = species), alpha = 0.2, color = "brown", linetype = "dashed") +
+  geom_point(data = orchesia_data, aes(x = long, y = lat, color = species), size = 2) +
+  scale_color_manual(name = "Species", values = custom_palette) +
+  scale_fill_manual(name = "Species", values = custom_palette) +
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    legend.key.size = unit(0.5, "cm"), # Reduce key size
+    legend.text = element_text(size = 8) # Reduce text size for the legend
+  )
+
+# Save the plot as a PNG file with specified dimensions (width = 25 cm, height = 12.05 cm)
+ggsave("Orchesia_Distribution_Plot.png", combined_plot, device = "png", 
+       width = 25 / 2.54, height = 12.05 / 2.54, dpi = 300, units = "in")
+
+# Display the combined plot
+print(combined_plot)
+```
+
+```{r}
+#STEP 4.5.2:Map of Orchesia, except on different plots
+
+# Map of Orchesia species
+# Filter data for the genus Orchesia, excluding 'Orchesia_sp.'
+orchesia_data <- combined_ALA %>% 
+  filter(genus == "Orchesia", species != "Orchesia_sp.")
+
+# Create individual maps for each species
+species_list <- unique(orchesia_data$species)
+
+for (sp in species_list) {
+  # Filter data for the specific species
+  species_data <- orchesia_data %>% filter(species == sp)
+
+  # Calculate MCP for the species
+  species_mcp <- species_data %>%
+    summarise(
+      geometry = st_convex_hull(st_union(st_as_sf(species_data, coords = c("long", "lat"), crs = 4326))),
+      .groups = "drop"
+    ) %>%
+    st_as_sf()
+
+  # Create the plot for the species
+  species_plot <- ggplot() +
+    geom_sf(data = TasPolygon_shp, fill = NA, color = "black") +
+    geom_sf(data = species_mcp, fill = "lightblue", alpha = 0.2, color = "#E3B505", linetype = "dashed") +
+    geom_point(data = species_data, aes(x = long, y = lat), color = "#E3B505", size = 2) +
+    labs(title = paste("Distribution of", sp), x = "Longitude", y = "Latitude") +
+    theme_minimal()
+
+  # Save the plot for the species
+  ggsave(paste0("Distribution_Plot_", sp, ".png"), species_plot, device = "png", 
+         width = 25 / 2.54, height = 12.05 / 2.54, dpi = 300, units = "in")
+
+  # Optionally, display the plot
+  print(species_plot)
+}
+
+```
+
+**AIM 4:Plot species occurrences and MCPs, rare and common species**
+
+```{r}
+#STEP 5.1.1: Remove rows with missing values in coordinates
+filtered_combined_ALA_clean <- combined_ALA %>%
+  filter(!is.na(long) & !is.na(lat))
+
+# Ensure the data is an sf object
+filtered_combined_ALA_sf <- st_as_sf(filtered_combined_ALA_clean, coords = c("long", "lat"), crs = 4326)
+
+# Extract coordinates for plotting points
+filtered_combined_ALA_coords <- filtered_combined_ALA_sf %>%
+  mutate(long = st_coordinates(.)[, 1], lat = st_coordinates(.)[, 2]) %>%
+  st_drop_geometry()
+
+# Plot only the points as red dots
+common_plot <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") + # Base map
+  geom_point(data = filtered_combined_ALA_coords, aes(x = long, y = lat), color = "#016FB9", size = 2) + # Points as red dots
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "Distribution of Common Species",
+       x = "Longitude", y = "Latitude") +
+  theme_minimal()
+
+# Save the plot as a PNG file with high resolution
+ggsave("Common_Distribution_Plot.png", 
+       common_plot, 
+       device = "png", 
+       width = 6.52,  # Width
+       height = 8.2,  # Height
+       dpi = 300)
+
+# Display the plot
+print(common_plot)
+```
+
+```{r}
+#STEP 5.2.1: Map of rare species <5 sites
+# Filter dataset to include only species present in less than 5 unique sites
+filtered_rare <- combined_ALA %>%
+  group_by(species) %>%
+  filter(n_distinct(lat, long) < 5) %>%
+  ungroup()
+
+# View the filtered dataset
+head(filtered_rare)
+
+# Remove rows with missing values in coordinates
+filtered_rare_clean <- filtered_rare %>%
+  filter(!is.na(long) & !is.na(lat))
+
+# Ensure the data is an sf object
+filtered_rare_sf <- st_as_sf(filtered_rare_clean, coords = c("long", "lat"), crs = 4326)
+
+# Extract coordinates for plotting points
+filtered_rare_coords <- filtered_rare_sf %>%
+  mutate(long = st_coordinates(.)[, 1], lat = st_coordinates(.)[, 2]) %>%
+  st_drop_geometry()
+
+# Plot only the points as red dots
+rare_plot <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") + # Base map
+  geom_point(data = filtered_rare_coords, aes(x = long, y = lat), color = "#016FB9", size = 2) + # Points as red dots
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "Distribution of Rare Species",
+       x = "Longitude", y = "Latitude") +
+  theme_minimal()
+
+# Save the plot as a PNG file with high resolution
+ggsave("Rare_Distribution_Plot.png", 
+       rare_plot, 
+       device = "png", 
+       width = 6.52,  # Width
+       height = 8.2,  # Height
+       dpi = 300)
+
+# Display the plot
+print(rare_plot)
+```
+
+```{r}
+#STEP 5.3.1: Map of known endemic species
+
+#Load data of traits
+traits.df <- read.csv("TS_Site_TraitRecords_20230628.csv", header = TRUE, stringsAsFactors = FALSE)
+View(traits.df) 
+```
+
+```{r}
+#STEP 5.3.2:Map of proposed endemic species
+
+# Filter the species IDs from traits.df that are "endemic"
+endemic_species_ids <- traits.df %>%
+  filter(native == "endemic") %>% # Use the 'native' column to select endemic species
+  pull(species_ID) # Extract the species IDs
+
+# Filter dataset to include only records for endemic species
+endemic_species_data <- combined_ALA %>%
+  filter(species %in% endemic_species_ids) # Replace 'species' with the correct column name in combined_ALA
+
+# Remove rows with missing values in coordinates
+endemic_species_clean <- endemic_species_data %>%
+  filter(!is.na(long) & !is.na(lat))
+
+# Ensure the data is an sf object
+endemic_species_sf <- st_as_sf(endemic_species_clean, coords = c("long", "lat"), crs = 4326)
+
+# Extract coordinates for plotting points
+endemic_species_coords <- endemic_species_sf %>%
+  mutate(long = st_coordinates(.)[, 1], lat = st_coordinates(.)[, 2]) %>%
+  st_drop_geometry()
+
+# Plot only the points as red dots
+endemic_plot <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") + # Base map
+  geom_point(data = endemic_species_coords, aes(x = long, y = lat), color = "#016FB9", size = 2) + # Points as red dots
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "Distribution of Endemic Species",
+       x = "Longitude", y = "Latitude") +
+  theme_minimal()
+
+# Save the plot as a PNG file with high resolution
+ggsave("Endemic_Distribution_Plot.png", 
+       endemic_plot, 
+       device = "png", 
+       width = 6.52,  # Width
+       height = 8.2,  # Height
+       dpi = 300)
+
+# Display the plot
+print(endemic_plot)
+```
+
+**AIM 5:Estimation of species ranges**
+
+```{r}
+# Datasets used
+#combined_ALA
+
+#STEP 6.1.1: Remove rows with missing latitude or longitude and records at (0, 0)
+beetle_long_clean <- combined_ALA %>%
+  filter(!is.na(lat) & !is.na(long) & !(lat == 0 & long == 0))
+
+# Convert the cleaned dataset to an sf object for spatial plotting
+beetle_long_sf <- st_as_sf(beetle_long_clean, coords = c("long", "lat"), crs = st_crs(TasPolygon_shp))
+
+# Function to generate a distribution map with MCP for a given species
+generate_distribution_map <- function(species_name) {
+  # Filter data for the selected species
+  species_data <- beetle_long_sf %>%
+    filter(species == species_name)
+  
+  # If no data exists for the species, skip plotting
+  if (nrow(species_data) == 0) {
+    message(paste("No data for species:", species_name, "- skipping."))
+    return(NULL)
+  }
+  
+  # Generate the minimum convex polygon (MCP) around the points
+  mcp <- species_data %>%
+    st_combine() %>%              # Combine all points into one geometry
+    st_convex_hull()              # Create a convex hull
+  
+  # Create the distribution map with MCP and points
+  p <- ggplot() +
+    geom_sf(data = TasPolygon_shp, fill = "lightgrey", color = "black", alpha = 0.5) +  # Background polygon
+    geom_sf(data = mcp, fill = "blue", alpha = 0.3, color = "blue") +                 # MCP polygon
+    geom_sf(data = species_data, aes(color = species), size = 2, show.legend = FALSE) +  # Species points
+    labs(
+      title = paste("Distribution Map with MCP for", species_name),
+      x = "Longitude",
+      y = "Latitude"
+    ) +
+    theme_minimal()
+  
+  # Save the plot with the species name in the file name
+  file_name <- paste0("mapof_", gsub(" ", "_", species_name), "_MCP.png")
+  ggsave(file_name, plot = p, width = 8, height = 6)
+  
+  # Return the MCP geometry for the combined map
+  return(mcp)
+}
+
+# Get the unique species names
+species_list <- unique(beetle_long_clean$species)
+
+# Initialize a list to store all MCPs for the combined map
+all_mcps <- list()
+
+# Loop through the species list and generate maps
+for (species in species_list) {
+  mcp <- generate_distribution_map(species)
+  if (!is.null(mcp)) {
+    all_mcps[[species]] <- mcp
+  }
+}
+
+# Combine all MCPs into one sf object
+combined_mcps <- do.call(st_union, all_mcps) #ERROR HERE
+
+# Create a combined map of all species' MCPs
+combined_map <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = "lightgrey", color = "black", alpha = 0.5) +  # Background polygon
+  geom_sf(data = combined_mcps, fill = "red", alpha = 0.2, color = "red") +          # Combined MCP polygons
+  labs(
+    title = "Combined Distribution Map with All MCPs",
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme_minimal()
+
+# Save the combined map
+ggsave("combined_distribution_map_MCPs.png", plot = combined_map, width = 10, height = 8)
+
+# Optionally print the combined map
+print(combined_map)
+
+```
+
+```{r}
+#STEP 6.1.2: Calculate areas 
+
+# Ensure the original data is in WGS84
+beetle_long_sf <- st_as_sf(beetle_long_clean, coords = c("lat", "long"), crs = 4326)
+
+# Reproject the data to UTM Zone 55S (for Tasmania)
+utm_crs <- "+proj=utm +zone=55 +south +datum=WGS84 +units=m +no_defs"
+beetle_long_sf_utm <- st_transform(beetle_long_sf, crs = utm_crs)
+
+# Convert to SpatialPointsDataFrame
+beetle_long_sp <- SpatialPointsDataFrame(
+  coords = st_coordinates(beetle_long_sf_utm),
+  data = as.data.frame(beetle_long_sf_utm),
+  proj4string = CRS(utm_crs) # Ensure UTM CRS is defined
+)
+
+# Function to calculate MCP home ranges for each species
+calculate_home_range <- function(species_name) {
+  # Filter data for the given species
+  species_data <- beetle_long_clean %>%
+    filter(species == species_name)
+  
+  # If fewer than 5 points exist for the species, skip calculation
+  if (nrow(species_data) < 5) {
+    message(paste("Not enough data for species:", species_name, "- skipping."))
+    return(data.frame(species = species_name, home_range_km2 = NA))
+  }
+  
+  # Subset the SpatialPointsDataFrame for the species
+  species_spdf <- beetle_long_sp[beetle_long_sp$species == species_name, ]
+  
+  # Calculate the 100% MCP for the species
+  mcp_area <- mcp(species_spdf, percent = 100)
+  
+  # Extract the area in km² (since UTM is in meters)
+  area_km2 <- sum(mcp_area@polygons[[1]]@area) / 1e6 # Convert m² to km²
+  
+  # Return a data frame with species name and area
+  return(data.frame(species = species_name, home_range_km2 = area_km2))
+}
+
+# Get unique species names
+species_list <- unique(beetle_long_clean$species)
+
+# Calculate home ranges for all species
+home_range_results <- lapply(species_list, calculate_home_range)
+
+# Combine results into a single data frame
+home_range_df <- do.call(rbind, home_range_results)
+
+# Save the home range results to a CSV file
+write.csv(home_range_df, "species_home_ranges.csv", row.names = FALSE)
+
+# Print a preview of the results
+print(home_range_df)
+```
+
+```{r}
+#STEP 6.1.3: Define the list of species to select
+selected_SREs <- c("Astenus_simsoni", "Enhypnon_punctatum", "Acallistus_cuprescens", "Cryptorinchini_TFIC_sp_01", 
+                      "Agyrtodes_sp._", "Diemenoma_sp_A", "Nargomorphus_confertus", "Lophixus_major", 
+                      "Decilaus_BA1_(sp._erect_setae)", "Litargops_intricatus", "Orchesia_C", "Quedius_sp_A", 
+                      "Quedius_ANIC_Newton_sp3", "Decilaus_lateralis", "Notolioon_multicolor", 
+                      "Microchaetes_bryophilus", "Enhypnon_squamosum", "Exeiratus_carinatus", "Exithius_ferrugineus", 
+                      "Decilaus_suturalis", "Exithius_mA1", "Decilaus_albonotatus", "Stichonotus_leai", 
+                      "Palimbolus_victoriae", "Ophrythyreocis_valgus", "Osorius_cf._victoriae", 
+                      "Heterothops_dolichocephalus", "Ischnoderus_parallelus", "Xynotropis_mA2", 
+                      "Decilaus_TFIC_sp_11", "Heteromastix_tenuis", "Nargomorphus_consimilis", 
+                      "Trechistus_terricola", "Latridius_obsoletus", "Nargomorphus_jeanneli", 
+                      "Stichonotus_piceus", "Decilaus_BC2:_lateralis", "Xynotropis_TFIC_sp_01", 
+                      "Hemiodoecellus_fidelis", "Decilaus_TFIC_sp_22", "Heteromastix_victoriensis", 
+                      "Roptoperus_longus", "Notoceryon_TFIC_sp_B", "Decilaus_TFIC_sp_09", 
+                      "Palimbolus_mamillatus", "Coripera_bistriata", "Adelium_pilosum", 
+                      "Sphaerothorax_tierensis", "Decilaus_TFIC_sp_02", "Boganium_armstrongi", 
+                      "Decilaus_squamosus", "Enhypnon_latitarsis", "Decilaus_TFIC_sp_08", 
+                      "Decilaus_TFIC_sp_16")
+
+# Filter dataset to include only records for the selected species
+species_data <- combined_ALA %>%
+  filter(species %in% selected_SREs) # Replace 'species' with the correct column name in combined_ALA
+
+# Join with home_range_df to filter species with home range < 10,000 km^2
+species_filtered <- species_data %>%
+  inner_join(home_range_df, by = c("species" = "species")) %>%
+  filter(home_range < 10000) # Filter species with home range < 10,000 km^2
+
+# Remove rows with missing values in coordinates
+species_clean <- species_filtered %>%
+  filter(!is.na(long) & !is.na(lat))
+
+# Ensure the data is an sf object
+species_sf <- st_as_sf(species_clean, coords = c("long", "lat"), crs = 4326)
+
+# Group by species and calculate MCP for each
+species_mcp <- species_sf %>%
+  group_by(species) %>%
+  summarise(geometry = st_combine(geometry)) %>%
+  summarise(geometry = st_convex_hull(st_union(geometry))) %>%
+  st_as_sf()
+
+# Plot the MCPs
+SRE_plot <- ggplot() +
+  geom_sf(data = TasPolygon_shp, fill = NA, color = "black") + # Base map
+  geom_sf(data = species_mcp, fill = "red", color = "red", alpha = 0.5) + # MCPs
+  coord_sf(xlim = c(st_bbox(TasPolygon_shp)[1], st_bbox(TasPolygon_shp)[3]),
+           ylim = c(st_bbox(TasPolygon_shp)[2], st_bbox(TasPolygon_shp)[4]),
+           expand = FALSE) +
+  labs(title = "MCPs of Selected Species with Home Range < 10,000 km^2",
+       x = "Longitude", y = "Latitude") +
+  theme_minimal()
+
+# Save the plot as a PNG file with high resolution
+ggsave("SRE_MCPs_Plot.png", 
+       SRE_plot, 
+       device = "png", 
+       width = 6.52,  # Width
+       height = 8.2,  # Height
+       dpi = 300)
+
+# Display the plot
+print(SRE_plot)
+```
+
+END DOCUMENT
