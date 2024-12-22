@@ -1,0 +1,227 @@
+---
+title: "TS_CH3_ALADownloads"
+author: "Tessa R Smith"
+date: "2024-03-20"
+output: html_document
+---
+
+## INTRODUCTION
+
+**BEETLE BIOGEOGRAPHY PROJECT**, University of Tasmania. Code by Tessa Smith, last edited May 2024.
+
+**AIMS** - **AIM 1: ALA Downloads of species recorded in this study**
+
+## DATA PREPARATION
+
+```{r, echo = FALSE}
+#STEP 0.1: Setup packages and working directory
+rm(list = ls()) # clear memory and start afresh
+
+#Change the location for your computer. 
+#NOTE make sure you use \\ instead of \ or /, as these result in errors. 
+setwd("C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH3_BROADSCALE\\CH3_analysis1_ALARecords")
+```
+
+Notes: works
+
+```{r}
+#STEP 0.2.1: Install packages
+library(galah)
+library(readr)
+library(dplyr)
+library(tidyverse)
+```
+
+```{r}
+#STEP 0.3.1:Select ALA atlas
+galah_config(atlas = "Australia")
+
+#STEP 0.3.2: First register a valid email address
+galah_config(email = "tessa.smith@utas.edu.au")
+
+#STEP 0.3.3: Provide reason for 
+galah_config(download_reason_id = 4) #4= scientific research
+```
+
+Notes: works
+
+```{r}
+#STEP 0.4.1: Define species names we want to import
+# Read the CSV file
+names_data <- read_csv("TessaPhD_Data_20240301_SpeciesNamesOnly.csv")  
+
+#STEP 0.4.2: Get the species names from a column 
+species_list <- names_data$species
+```
+
+Notes: works
+
+```{r}
+#STEP 0.5.1: Split the dataset up into two groups
+# Determine the midpoint of the species_list
+mid_point <- floor(length(species_list) / 2)
+
+#STEP 0.5.2: Partition the species_list into two dataframes
+species_list1 <- species_list[1:mid_point]
+species_list2 <- species_list[(mid_point+1):length(species_list)]
+
+#STEP 0.5.3: Convert the lists to dataframes
+df1 <- data.frame(species = species_list1)
+df2 <- data.frame(species = species_list2)
+
+#STEP 0.5.4: View the dataframes
+view(df1)
+view(df2)
+```
+
+Notes: works
+
+```{r}
+#STEP 0.6.1: Initialize an empty data frame to store the occurrences for each species
+occ_df <- data.frame()
+
+#STEP 0.6.2: Loop over each species in df1
+for(i in 1:nrow(df1)) {
+  # Get the species name
+  species_name <- df1$species[i]
+
+#STEP 0.6.3: Find the occurrences for the species
+  occ <- galah_call() |>
+    galah_identify(species_name) |>
+    galah_filter(
+      stateProvince == "Tasmania",
+      profile = "ALA"
+    ) |>
+    atlas_occurrences(mint_doi = TRUE)
+  
+#STEP 0.6.4: Add the species name to the occurrences data frame
+occ$species <- species_name
+  
+#STEP 0.6.5: Append the occurrences to the final data frame
+  occ_df1 <- rbind(occ_df, occ)
+}
+
+#STEP 0.6.6: View the data frame of occurrences
+view(occ_df1)
+```
+
+```{r}
+
+#STEP 0.6.1: Initialize two empty data frames to store the occurrences for each species
+occ_df1 <- data.frame()
+occ_df2 <- data.frame()
+
+#STEP 0.6.2: Loop over each species in df1
+for(i in 1:nrow(df1)) {
+  # Get the species name
+  species_name <- df1$species[i]
+
+#STEP 0.6.3: Find the occurrences for the species
+  occ <- galah_call() |>
+    galah_identify(species_name) |>
+    galah_filter(
+      stateProvince == "Tasmania",
+      profile = "ALA"
+    ) |>
+    atlas_occurrences(mint_doi = TRUE)
+  
+#STEP 0.6.4: Add the species name to the occurrences data frame
+  occ$species <- species_name
+  
+#STEP 0.6.5: Append the occurrences to the final data frame
+  occ_df1 <- rbind(occ_df1, occ)
+}
+
+#STEP 0.6.6: Loop over each species in df2
+for(i in 1:nrow(df2)) {
+  # Get the species name
+  species_name <- df2$species[i]
+
+#STEP 0.6.7: Find the occurrences for the species
+  occ2 <- galah_call() |>
+    galah_identify(species_name) |>
+    galah_filter(
+      stateProvince == "Tasmania",
+      profile = "ALA"
+    ) |>
+    atlas_occurrences(mint_doi = TRUE)
+  
+#STEP 0.6.8: Add the species name to the occurrences data frame
+  occ2$species <- species_name
+  
+#STEP 0.6.9: Append the occurrences to the final data frame
+  occ_df2 <- rbind(occ_df2, occ2)
+}
+
+#STEP 0.6.10: Combine occ_df1 and occ_df2 into a final dataframe
+occ_df_combined <- rbind(occ_df1, occ_df2)
+
+#STEP 0.6.11: View the combined data frame of occurrences
+view(occ_df_combined)
+```
+
+```{r}
+# STEP 0.7.1: See DOI
+attr(occ, "doi") 
+attr(occ2, "doi") 
+
+#STEP 0.7.2: Write the combined data frame to a CSV file
+write.csv(occ_df_combined, file = "occ_df_combined.csv")
+```
+
+```{r}
+#GIVE EACH ALA DATAPOINT A SITE_NAME SO WE CAN COMBINE WITH OUR OWN DATA
+
+# Load Necessary Libraries
+library(dplyr)
+library(galah)
+
+# Print the current working directory to verify
+print(getwd())
+
+# Assuming occ_df_combined is already loaded in your environment
+occ_df_combined <- read.csv("occ_df_combined.csv") # Adjust the file path accordingly
+
+# Check if the dataframe is loaded correctly
+head(occ_df_combined)
+
+# Step 4: Remove records with 'ABSENT' in the 'occurrenceStatus' column
+occ_df_combined <- occ_df_combined %>% filter(occurrenceStatus != 'ABSENT')
+
+# Step 5: Create a unique identifier for each unique combination of decimalLatitude and decimalLongitude
+occ_df_combined <- occ_df_combined %>%
+  mutate(site_id = paste(decimalLatitude, decimalLongitude, sep = "_"))
+
+# Step 6: Get the unique combinations
+unique_sites <- unique(occ_df_combined$site_id)
+
+# Step 7: Create a site_name vector
+site_names <- paste0("ALA", sprintf("%03d", 1:length(unique_sites)))
+
+# Step 8: Create a mapping from site_id to site_name
+site_name_mapping <- setNames(site_names, unique_sites)
+
+# Step 9: Add the site_name column to occ_df_combined
+occ_df_combined <- occ_df_combined %>%
+  mutate(site_name = site_name_mapping[site_id])
+
+# Step 10: Remove the temporary site_id column
+occ_df_combined <- occ_df_combined %>% select(-site_id)
+
+#Step 11: Save the updated dataframe (Ensure you have permission to write to the directory)
+#write.csv(occ_df_combined, "occ_df_combined_sitenames.csv", row.names = FALSE)
+
+# Try saving the updated dataframe to a known location
+save_path <- "C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH3_BROADSCALE\\CH3_analysis1_ALARecords\\occ_df_combined_sitenames.csv" # Change this path as needed
+
+# Save the updated dataframe, ensure the directory exists and you have write permissions
+tryCatch({
+  write.csv(occ_df_combined, save_path, row.names = FALSE)
+  message("File saved successfully.")
+}, error = function(e) {
+  message("Error in saving the file: ", e$message)
+})
+
+# View the updated dataframe
+head(occ_df_combined)
+```
