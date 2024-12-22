@@ -1,0 +1,272 @@
+---
+title: "Ch3_ClusterAnalysis"
+author: "Tessa R Smith"
+date: "2024-03-01"
+output: html_document
+---
+
+## INTRODUCTION
+
+**BEETLE BIOGEOGRAPHY PROJECT**, University of Tasmania. Data collected by Tessa R Smith and volunteers (2020-2022). Code by Tessa Smith, last edited December 2024.
+
+**AIMS**
+
+-   **AIM 4:Exploratory data analysis, Cluster analysis by site**
+
+## DATA PREPARATION ##
+
+```{r, echo = FALSE}
+#STEP 0.1: Setup packages and working directory
+rm(list = ls()) # clear memory and start afresh
+
+#Change the location for your computer. 
+#NOTE make sure you use \\ instead of \ or /, as these result in errors. 
+setwd("C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH3_BROADSCALE\\CH3_ClusterAnalysis_20241114")
+```
+Notes: works
+
+```{r}
+#Load packages
+library(dplyr)
+library(tidyverse)
+```
+
+```{r, echo = FALSE}
+#STEP 0.2: Import data
+#Metadata (includes altitude etc)
+#Reference: Own data (Tessa Smith PhD)
+#File type: CSV
+#Format: long form. #Columns: site_ID, species, specimen_count. #Rows: Individual records
+beetle_records.df <- read.csv("TS_Site_BeetleRecords_20241212.csv", header = TRUE, stringsAsFactors = FALSE)
+```
+Notes: works
+
+Have removed:
+-missing values
+-moss sites
+
+```{r, echo = FALSE}
+# STEP 0.2.1: Remove rows with no value in the species column
+beetle_records_cleaned <- beetle_records.df %>%
+  filter(!is.na(species) & species != "")
+
+# STEP 0.2.2: Reshape species list of beetle records from long form into site.count form (wide)
+# Only necessary once before start of analysis
+df_reshaped <- beetle_records_cleaned %>%
+  # Change from long to wide format
+  pivot_wider(
+    id_cols = site_ID,
+    names_from = species,
+    values_from = species_count,
+    # Sum the entries where there is more than 1 value in specimen_count
+    values_fn = list(species_count = sum)
+  )  
+
+# STEP 0.2.4: Change NAs in the new dataset to 0
+df_reshaped[is.na(df_reshaped)] <- 0
+
+# STEP 0.2.5: Remove any rows with NA
+df_reshaped <- na.omit(df_reshaped)
+
+# View the reshaped data
+view(df_reshaped)
+```
+Notes: works
+
+```{r}
+#STEP 0.2.5: Log transform data
+for (i in 2:675) {
+  df_reshaped[, i] = log(df_reshaped[, i] + 1)
+}
+head(df_reshaped)
+```
+Notes: 
+
+```{r}
+#STEP 0.2.6: Add new columns, Count abundance number for each site, Count species number for each site, Count unique species for each site
+df_reshaped_counts <- df_reshaped %>% 
+  mutate(abundance = rowSums(.[, -1]),  # Sum all values from columns other than the first one
+    species_count = rowSums(.[-1] > 0),  # Count numbers of columns >0
+    unique_species = rowSums((.[, -1] > 0) * (colSums(.[-1] > 0) == 1))  # Count number of columns with a value >0 that occur in no other row
+  )
+view (df_reshaped_counts)
+```
+Notes: works
+
+```{r, echo = FALSE}
+#STEP 0.3: Import data (environmental data(local))
+#Metadata (includes altitude etc)
+#Reference: Own data (Tessa Smith PhD)
+#File type: CSV
+#Format: wide form #Columns: environmental variables #Rows:Sites
+Metadata <- read.csv("TS_Site_Enviro_metadata_20230622.csv", header = TRUE, stringsAsFactors = FALSE)
+View(Metadata) #Opens data in another tab so it can be easily viewed
+
+```
+Notes: works
+
+IBRA Bioregion colours
+TSR01-#fde725
+TSE01-#a0da39
+BEL01- #4ac16d
+FUR01- #1fa187
+TNS01-#277f8e
+KIN01- #365c8d
+TWE01-#46327e
+TCH01-#440154
+
+**AIM 4:Exploratory data analysis, Cluster analysis by site**
+Aim: Do sites cluster together?
+
+Code from: https://www.datanovia.com/en/blog/cluster-analysis-in-r-simplified-and-enhanced/
+```{r}
+#STEP 4.1.1: Load packages
+library(factoextra)
+library(ggplot2)
+```
+
+```{r}
+#STEP 4.1.2: Store the site names (first column) in a separate vector
+site_names <- df_reshaped[, 1]
+
+#STEP 4.1.3: Convert species occurrences to numeric values
+df_reshaped[, 2:688] <- lapply(df_reshaped[, 2:688], function(x) as.numeric(as.character(x)))
+```
+Notes: works
+
+```{r}
+#STEP 4.1.3: Remove sites 77, 101, 124
+df_reshaped <- df_reshaped[-c(77, 101, 124), ]
+df_reshaped <- df_reshaped[-c(111, 132), ]
+
+```
+Notes: these were causing issues with the k-means clustering (very variable samples)
+
+```{r}
+# STEP 4.2.1: Correlation-based distance method (Pearson's correlation)
+# Exclude the first column (site names) when calculating the distance
+res.dist <- get_dist(df_reshaped[, -1], method = "pearson")
+
+# Extract site names from the first column of df_reshaped
+site_labels <- as.character(df_reshaped$site_ID)  # Assuming the first column is named "site_ID"
+
+# Convert the distance matrix into a data frame for analysis
+dist_matrix <- as.matrix(res.dist)
+
+# Get the upper triangular values (excluding diagonal) for comparison
+dist_values <- dist_matrix[upper.tri(dist_matrix, diag = FALSE)]
+
+# Extract row and column indices of the upper triangular matrix
+site_combinations <- which(upper.tri(dist_matrix, diag = FALSE), arr.ind = TRUE)
+site_names_pairs <- data.frame(
+  Site1 = site_labels[site_combinations[, 1]],
+  Site2 = site_labels[site_combinations[, 2]],
+  Correlation = dist_values
+)
+
+# Sort by highest correlations and select the top 20
+top_20_correlations <- site_names_pairs %>%
+  arrange(desc(Correlation)) %>%
+  head(20)
+
+# Print the top 20 pairs with the highest correlations
+cat("Top 20 pairs of sites with the highest correlations:\n")
+print(top_20_correlations)
+
+# Classify distances >0.75 and <=0.75
+num_greater_75 <- sum(dist_values > 0.75)
+num_less_equal_75 <- sum(dist_values <= 0.75)
+
+# Print the results
+cat("Number of distances > 0.75:", num_greater_75, "\n")
+cat("Number of distances <= 0.75:", num_less_equal_75, "\n")
+
+# Transform the distance matrix back to correlation values
+correlation_matrix <- 1 - dist_matrix  # Assuming the transformation was 1 - r
+
+# Visualize the correlation matrix with fviz_dist
+p <- fviz_dist(as.dist(1 - correlation_matrix), lab = site_labels, 
+               gradient = list(low = "blue", mid = "white", high = "red")) +
+     theme(axis.text.y = element_text(size = 4, angle = 0, face = "bold"),
+           axis.text.x = element_text(size = 4, angle = 90, hjust = 1, vjust = 0.5, face = "bold")) +
+     labs(x = "Sites", y = "Sites")
+
+# Print the plot
+print(p)
+```
+Notes: The correlation-based distance is defined by subtracting the correlation coefficient from 1.
+
+Other options for correlation distances are:
+Eisen Cosine Correlation Distance (A special case of Pearson’s correlation with means replaced by zero)
+Spearman Correlation Distance (Computes the correlation between the ranks of variables)
+Kendall Correlation Distance (Measures correspondence between rankings)
+
+```{r}
+# Remove columns with constant values
+df_reshaped_clean <- df_reshaped %>%
+  select_if(function(col) length(unique(col)) > 1)
+
+# STEP 4.4: Enhanced k-means clustering
+# Exclude the first column (site names) when performing clustering
+res.km <- eclust(df_reshaped_clean[, -1], "kmeans", nstart = 25, k.max = 10, graph = FALSE)
+
+# Convert the site names to a character vector
+site_labels <- as.character(df_reshaped_clean[, 1])
+
+# Visualize the clustering result
+p <- fviz_cluster(res.km, geom = "point", labelsize = 4) + 
+     theme(axis.text.y = element_text(size = 4),
+           axis.text.x = element_text(size = 4, angle = 90, hjust = 1, vjust = 0.5))
+
+# Print the plot
+print(p)
+```
+Notes:works.
+Need to remove sites 77, 101, 124
+
+```{r}
+# STEP 4.5: Gap statistic plot
+if (!is.null(res.km$gap_stat)) {
+  fviz_gap_stat(res.km$gap_stat)
+} else {
+  cat("Gap statistic data not available in res.km.\n")
+}
+
+# STEP 4.6: Silhouette plot
+if (!is.null(res.km$silinfo)) {
+  fviz_silhouette(res.km)
+} else {
+  cat("Silhouette data not available in res.km.\n")
+}
+
+# STEP 4.7.1: Optimal number of clusters using gap statistics
+if (!is.null(res.km$gap_stat)) {
+  cat("Optimal number of clusters using gap statistics:", res.km$nbclust, "\n")
+} else {
+  cat("Gap statistic data not available for determining optimal clusters.\n")
+}
+
+# STEP 4.7.2: Print clustering results
+print(res.km)
+```
+Notes: works 
+
+```{r}
+# STEP 4.8: Enhanced hierarchical clustering
+# Exclude the first column (site names) when performing clustering
+res.hc <- eclust(df_reshaped_clean[, -1], "hclust", scale = "none") # compute hclust
+
+# Create the dendrogram with customized text size and rotation for labels
+dendro <- fviz_dend(res.hc, rect = TRUE, show_labels = TRUE, labelsize = 4) + 
+  theme(axis.text.x = element_text(size = 4, angle = 90, hjust = 1, vjust = 0.5),
+        axis.text.y = element_text(size = 4))
+
+# Print the dendrogram
+print(dendro)
+```
+
+```{r}
+fviz_silhouette(res.hc) # silhouette plot
+
+fviz_cluster(res.hc) # scatter plot
+```
