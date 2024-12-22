@@ -4,3 +4,9 @@ Supervisors: Barry Brook and Christopher Johnson.
 Collaborators: Nicholas Porch, Lynne Forster, Kieren Mitchell. 
 
 All chapters of this thesis are currently unpublished, and so all content to stay with PhD candidate, supervisors, collaborators and thesis assessors until publication. 
+
+Four main file types in this repository:
+- .rmd files with R code
+- .xml files for BEAST settings, produced in BeauTi
+- .csv files with selected R outputs
+- .doc files with maps
