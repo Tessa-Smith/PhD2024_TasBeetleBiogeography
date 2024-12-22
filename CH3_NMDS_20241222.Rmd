@@ -1,0 +1,662 @@
+---
+title: "CH3_NMDS"
+author: "Tessa R Smith"
+date: "2024-03-01"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, echo = FALSE}
+#STEP 0.1.1: Setup packages and working directory
+rm(list = ls()) # clear memory and start afresh
+
+#Change the location for your computer. 
+#NOTE make sure you use \\ instead of \ or /, as these result in errors. 
+setwd("C:\\Users\\Tessas\\OneDrive - University of Tasmania\\Tessa_PhD\\WORK_Code\\CH3_BROADSCALE\\CH3_NMDS_20241114")
+```
+
+# INTRODUCTION
+
+**BEETLE BIOGEOGRAPHY PROJECT**, University of Tasmania. Data collected
+by Tessa R Smith and volunteers (2020-2022). Code by Tessa Smith, last
+edited December 2024.
+
+-   **AIMS**
+
+-   **AIM 1:Exploratory data analysis, NMDS of beetle records by site**
+
+-   **AIM 2: Descriptive statistics, Diversity with altitude**
+
+## DATA PREPARATION
+
+```{r}
+#STEP 0.1.2: Load packages
+library(dplyr) # For data manipulation
+library(tidyverse)
+library(vegan)
+library(ggplot2)
+library(svglite)
+library(ggpubr)  # For stat_regline_equation()
+library(sf)
+```
+
+Data pre treatment: 1. Creating a species column with no spaces and
+without underscore at end of text -create new column for species -TRIM
+(removes all spaces except one between words), data from species column
+-copy and paste values only -replace all the spaces in the new species
+column with underscore (\_) -delete original species column -rename new
+species column
+
+2.  Delete any rows without data -conditional formatting for rows with
+    blanks -delete these rows
+
+3.  Remove species types that you don't want "UNKNOWN_SPECIES",
+    "UNKNOWN_SPECIES-Pieces", "PELORIDIIDAE_indet.", "Hemiodoecus_leai",
+    "Hemiodoecellus_fidelis", "Choerocoris_paganus",
+    "LYCIDAE_indet.\_(larvae)", "Misc.\_beetles", "Hemiptera\_(misc.)",
+    "Spiders\_(misc.)", "Opiliones\_(misc.)", "Mites\_(misc.)",
+    "Collembola\_(misc.)", "Millipedes\_&*entipedes (misc.)",
+    "Earwigs*(misc.)", "Hymenoptera\_(misc.)", "Snails\_(misc.)",
+    "Other_non-beetle_invertebrates\_(misc.)"
+
+```{r, echo = FALSE}
+#STEP 0.2.1: Import data
+beetle_records.df <- read.csv("TS_Site_BeetleRecords_20241212.csv", header = TRUE, stringsAsFactors = FALSE)
+View(beetle_records.df) #Opens data in another tab so it can be easily viewed
+```
+
+Notes: works
+
+```{r, echo = FALSE}
+# STEP 0.2.2: Reshape species list of beetle records from long form into site.count form (wide)
+# Only necessary once before start of analysis
+df_reshaped <- beetle_records.df %>%
+  # Remove rows with no entry in the species column
+  filter(!is.na(species) & species != "") %>%
+  # Change from long to wide format
+  pivot_wider(
+    id_cols = site_ID,
+    names_from = species,
+    values_from = species_count,
+    # Sum the entries where there is more than 1 value in specimen_count
+    values_fn = list(species_count = sum)
+  )
+
+# Change NAs in the new dataset to 0
+df_reshaped[is.na(df_reshaped)] <- 0 
+
+# Add new columns
+# Count abundance number for each site, count species number for each site, count unique species for each site
+df_reshaped <- df_reshaped %>% 
+  mutate(
+    abundance = rowSums(.[, -1]),  # Sum all values from columns other than the first one
+    Count = rowSums(.[-1] > 0),  # Count numbers of columns >0
+    unique_species = rowSums((.[, -1] > 0) * (colSums(.[-1] > 0) == 1))  # Count number of columns with a value >0 that occur in no other row
+  )
+
+# View the resulting dataframe
+view(df_reshaped)
+```
+
+```{r}
+#STEP 0.2.3: Remove columns that we don't want in the database
+
+#create list of names of columns that we want to remove
+
+columns_to_remove <- c("UNKNOWN_SPECIES",
+"UNKNOWN_SPECIES-Pieces",
+"PELORIDIIDAE_indet.",
+"Hemiodoecus_leai",
+"Hemiodoecellus_fidelis",
+"Choerocoris_paganus",
+"LYCIDAE_indet._(larvae)",
+"Misc._beetles",
+"Hemiptera_(misc.)",
+"Spiders_(misc.)",
+"Opiliones_(misc.)",
+"Mites_(misc.)",
+"Collembola_(misc.)",
+"Millipedes_&_entipedes (misc.)",
+"Earwigs_(misc.)",
+"Hymenoptera_(misc.)",
+"Snails_(misc.)",
+"Other_non-beetle_invertebrates_(misc.)", 
+"STAPHYLINIDAE_indet.",
+"CURCULIONIDAE_indet.")
+
+# remove the columns
+# Remove the columns from the dataframe
+df_reshaped <- df_reshaped[ , !(names(df_reshaped) %in% columns_to_remove)]
+
+# View the updated dataframe
+View(df_reshaped)
+```
+
+```{r}
+#STEP 0.2.4: Log transform data
+for (i in 2:675) {
+  df_reshaped[, i] = log(df_reshaped[, i] + 1)
+}
+head(df_reshaped)
+```
+
+Notes: works. Logarithmic transformation (log(x + 1)) is frequently used
+to stabilize variance and normalize the distribution of species
+abundance data. It is particularly useful when dealing with highly
+skewed data, as it compresses the range of values and reduces the impact
+of large outliers.
+
+```{r}
+#STEP 0.2.5: Remove rare species (species present in <5 sites)
+
+# Function to remove columns where species is present in less than 5 sites
+remove_infrequent_species <- function(df, threshold = 5) {
+  # Replace any " in column names with _
+  colnames(df) <- gsub('"', '_', colnames(df))
+  
+  # Calculate the number of sites each species is present in
+  species_counts <- colSums(df != 0)
+  
+  # Identify columns to keep and to remove
+  columns_to_keep <- species_counts >= threshold
+  columns_to_remove <- species_counts < threshold
+  
+  # Filter the data frame
+  df_filtered <- df[, columns_to_keep]
+  
+  # Print the number of columns included and removed
+  num_included <- sum(columns_to_keep)
+  num_removed <- sum(columns_to_remove)
+  cat("Number of columns included:", num_included, "\n")
+  cat("Number of columns removed:", num_removed, "\n")
+  
+  return(df_filtered)
+}
+
+# Apply the function to df_reshaped
+df_filtered <- remove_infrequent_species(df_reshaped, 5)
+```
+
+Notes: works. Removes the majority of the data though.
+
+\*Skipping this step for run on 26/08/2024
+
+```{r}
+#STEP 0.2.5.1: Run if skipping previous step
+df_filtered <-df_reshaped
+```
+
+```{r, echo = FALSE}
+#STEP 0.3.1: Import data (environmental data(local))
+#Metadata (includes altitude etc)
+#Reference: Own data (Tessa Smith PhD)
+#File type: CSV
+#Format: wide form #Columns: environmental variables #Rows:Sites
+Metadata <- read.csv("TS_Site_Enviro_metadata_20230622.csv", header = TRUE, stringsAsFactors = FALSE)
+View(Metadata) #Opens data in another tab so it can be easily viewed
+```
+
+## **AIM 1:Exploratory data analysis, NMDS of beetle records by site** 
+
+Method reference: MultiDimensional Scaling (NMDS) is a distance-based
+ordination technique.
+<https://uw.pressbooks.pub/appliedmultivariatestatistics/chapter/nmds/>
+
+
+```{r, echo = FALSE}
+#STEP 1.1.1: Add IBRA Bioregion to Records_dataset
+# Perform a left join to align the dataframes
+Records_data <- left_join(df_filtered, Metadata, by = "site_ID")
+
+#Convert site_ID names to numeric values
+Records_data$site_ID <- as.numeric(factor(df_filtered$site_ID))
+head(Records_data) #Reminder to convert this back again later!
+```
+
+```{r}
+#STEP 1.1.2: Select columns 1 to 735 from the 'Records_data' dataframe
+Records_data_species <- Records_data %>% select(1:134)
+
+# View the resulting dataframe
+View(Records_data_species)
+```
+
+```{r}
+#STEP 1.1.3: Run the NMDS
+set.seed(75) 
+
+z_beetles <- metaMDS (comm = Records_data_species,
+autotransform = FALSE, #If a transformation is applied to the data #CHANGED FROM TRUE
+distance = "bray", #Bray-curtis dissimilarity metric
+engine = "monoMDS", #the default engine in vegan
+k = 3, #number of dimensions in the solution                        
+weakties = TRUE, #weak ties should be allowed in the rank order of dissimilarities
+model = "global",  #Global model (This is the normal non-metric MDS with a monotone regression. The global model attempts to find a configuration of points in low-dimensional space (usually 2D or 3D) that preserves the rank order of distances between all pairs of objects in the original high-dimensional space) vs. local model (This is a non-metric MDS with separate regressions for each point. The local model allows for different monotonic relationships between observed and predicted dissimilarities for different objects. This can be useful when the relationship between objects varies across the gradient). Other options are linear and hybrid models. 
+maxit = 400, #Maximum number of permitted iterations
+try = 40,  #Number of random starts in the search for a stable solution
+trymax = 100)
+
+# Plot goodness of fit
+gof <- goodness(object = z_beetles)
+plot(z_beetles, display = "sites", type = "none")
+
+points(z_beetles, display = "sites",
+cex = 2*gof/mean(gof))
+
+#Shephard plot
+plot(z_beetles$diss, z_beetles$dist)
+
+# Calculate species scores as the weighted average of the coordinates of the plots on which those species occurred.
+
+# Obtain ordination coordinates
+z_beetles$points %>% head()
+
+z.points <- data.frame(z_beetles$points)
+```
+
+Notes: x is observed dissimilarity y is ordination distance Notes: works
+
+```{r}
+#STEP 1.1.4: NMDS run without ALA data
+
+# Remove `site_ID` or any non-numeric columns
+df_filtered_numeric <- df_filtered %>%
+  select(-site_ID)  # Ensure site_ID is excluded
+
+# Convert to a numeric matrix
+comm_matrix <- as.matrix(df_filtered_numeric)
+
+# Replace missing values (NA) with 0
+comm_matrix[is.na(comm_matrix)] <- 0
+
+# Ensure all entries are numeric
+if (!all(sapply(comm_matrix, is.numeric))) {
+  stop("Error: Non-numeric values detected in the matrix. Please check your data.")
+}
+
+# Run the NMDS (no ala data)
+set.seed(12345) 
+z_beetles <- metaMDS (comm = df_filtered_numeric,
+autotransform = FALSE, #If a transformation is applied to the data #already transformed
+distance = "bray", #Bray-curtis dissimilarity metric
+engine = "monoMDS", #the default engine in vegan
+k = 2, #number of dimensions in the solution                        
+weakties = TRUE, #weak ties should be allowed in the rank order of dissimilarities
+model = "global",  #Global model (This is the normal non-metric MDS with a monotone regression. The global model attempts to find a configuration of points in low-dimensional space (usually 2D or 3D) that preserves the rank order of distances between all pairs of objects in the original high-dimensional space) vs. local model (This is a non-metric MDS with separate regressions for each point. The local model allows for different monotonic relationships between observed and predicted dissimilarities for different objects. This can be useful when the relationship between objects varies across the gradient). Other options are linear and hybrid models. 
+maxit = 200, #Maximum number of permitted iterations
+try = 20,  #Number of random starts in the search for a stable solution
+trymax = 100)
+
+# Plot goodness of fit
+gof <- goodness(object = z_beetles)
+plot(z_beetles, display = "sites", type = "none")
+
+points(z_beetles, display = "sites",
+cex = 2*gof/mean(gof))
+
+#Shephard plot
+plot(z_beetles$diss, z_beetles$dist)
+
+# Calculate species scores as the weighted average of the coordinates of the plots on which those species occurred.
+
+# Obtain ordination coordinates
+z_beetles$points %>% head()
+
+z.points <- data.frame(z_beetles$points)
+
+```
+
+```{r}
+#STEP 1.1.5: Merge Records_data with z.points
+z.points <- cbind(z.points, Records_data)
+```
+
+
+```{r}
+#STEP 1.2.1: Plot NMDS by IBRA Bioregion
+
+# Merge z.points with Records_data to include IBRA bioregion and forest type
+z.points <- z.points %>%
+    mutate(ibra_region = Records_data$ibra_region, 
+           forest_type = Records_data$forest_type)
+
+# Preprocess z.points to remove NAs and group by IBRA bioregion
+z.points_clean <- z.points %>%
+    filter(!is.na(ibra_region))  # Exclude NAs in IBRA bioregion
+
+# Calculate convex hulls for each IBRA bioregion
+convex_hulls <- z.points_clean %>%
+    group_by(ibra_region) %>%
+    slice(chull(MDS1, MDS2)) %>%
+    ungroup()
+
+# Convert convex hulls back to a data frame for ggplot
+convex_hulls <- as.data.frame(convex_hulls)
+
+# Plot NMDS by IBRA Bioregion with convex hulls
+NMDS_IBRA <- ggplot(z.points_clean, aes(x = MDS1, y = MDS2)) + 
+    # Add convex hull polygons
+    geom_polygon(data = convex_hulls, aes(x = MDS1, y = MDS2, fill = ibra_region, group = ibra_region), 
+                 alpha = 0.3, colour = "black") +
+    # Add points
+    geom_point(size = 3, aes(shape = forest_type, colour = ibra_region)) + 
+    # Custom theme
+    theme(axis.text.y = element_text(colour = "black", size = 10, face = "bold"), 
+          axis.text.x = element_text(face = "bold", size = 10, colour = "black"), 
+          legend.text = element_text(size = 10, face = "bold", colour = "black"), 
+          legend.position = "right", 
+          axis.title.y = element_text(face = "bold", size = 10), 
+          axis.title.x = element_text(face = "bold", size = 10, colour = "black"), 
+          legend.title = element_text(size = 10, colour = "black", face = "bold"), 
+          panel.background = element_blank(), 
+          panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key = element_blank()) + 
+    # Labels and colours
+    labs(x = "NMDS1", colour = "IBRA Bioregion", y = "NMDS2", shape = "Forest Type", fill = "IBRA Bioregion") +
+    scale_colour_manual(values = c("#4ac16d", "#1fa187", "#365c8d", "#440154", "#277f8e", "#a0da39", "#fde725", "#46327e", "#E69F00")) +
+    scale_fill_manual(values = c("#4ac16d", "#1fa187", "#365c8d", "#440154", "#277f8e", "#a0da39", "#fde725", "#46327e", "#E69F00"))  # Match fill colours to point colours
+
+# Display the plot
+NMDS_IBRA
+
+# Save the plot as a .png file
+ggsave("NMDS_IBRA.png", plot = NMDS_IBRA, width = 8, height = 6, dpi = 300)
+
+```
+
+```{r}
+#STEP 1.2.2: Plot NMDS by Ecoregions
+# Merge z.points with Records_data to include ecoregion and forest_type
+z.points <- z.points %>%
+    mutate(ecoregion = Records_data$ecoregion, 
+           forest_type = Records_data$forest_type)
+
+# Preprocess z.points to remove NAs and group by ecoregion
+z.points_clean <- z.points %>%
+    filter(!is.na(ecoregion))  # Exclude NAs in ecoregion
+
+# Calculate convex hulls for each ecoregion
+convex_hulls <- z.points_clean %>%
+    group_by(ecoregion) %>%
+    slice(chull(MDS1, MDS2))  # Compute convex hull points for each ecoregion
+
+# Plot NMDS by Ecoregion with convex hulls
+NMDS_Ecoregion <- ggplot(z.points_clean, aes(x = MDS1, y = MDS2)) + 
+    # Add convex hull polygons
+    geom_polygon(data = convex_hulls, aes(x = MDS1, y = MDS2, fill = ecoregion, group = ecoregion), 
+                 alpha = 0.3, colour = "black") +
+    # Add points
+    geom_point(size = 3, aes(shape = forest_type, colour = ecoregion)) + 
+    # Custom theme
+    theme(axis.text.y = element_text(colour = "black", size = 10, face = "bold"), 
+          axis.text.x = element_text(face = "bold", size = 10, colour = "black"), 
+          legend.text = element_text(size = 10, face = "bold", colour = "black"), 
+          legend.position = "right", 
+          axis.title.y = element_text(face = "bold", size = 10), 
+          axis.title.x = element_text(face = "bold", size = 10, colour = "black"), 
+          legend.title = element_text(size = 10, colour = "black", face = "bold"), 
+          panel.background = element_blank(), 
+          panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key = element_blank()) + 
+    # Labels and colours
+    labs(x = "NMDS1", colour = "Ecoregion", y = "NMDS2", shape = "Forest Type", fill = "Ecoregion") +
+    scale_colour_manual(values = c("#50BF7F", "#31CFB6", "#60B223")) +
+    scale_fill_manual(values = c("#50BF7F", "#31CFB6", "#60B223"))  # Match fill colours to point colours
+
+# Display the plot
+NMDS_Ecoregion
+
+# Save the plot as a .png file
+ggsave("NMDS_Ecoregion.png", plot = NMDS_Ecoregion, width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+#STEP 1.2.3:  Plot NMDS by Invertebrate Bioregion
+
+# Merge z.points with Records_data to include Invertebrate Bioregion and forest type
+z.points <- z.points %>%
+    mutate(invert_bioreg = Records_data$invert_bioreg, 
+           forest_type = Records_data$forest_type)
+
+# Preprocess z.points to remove NAs and group by Invertebrate Bioregion
+z.points_clean <- z.points %>%
+    filter(!is.na(invert_bioreg))  # Exclude NAs in Invertebrate Bioregion
+
+# Calculate convex hulls for each Invertebrate Bioregion
+convex_hulls <- z.points_clean %>%
+    group_by(invert_bioreg) %>%
+    slice(chull(MDS1, MDS2)) %>%
+    ungroup()
+
+# Plot NMDS by Invertebrate Bioregion with convex hulls
+NMDS_InvertBioreg <- ggplot(z.points_clean, aes(x = MDS1, y = MDS2)) + 
+    # Add convex hull polygons
+    geom_polygon(data = convex_hulls, aes(x = MDS1, y = MDS2, fill = invert_bioreg, group = invert_bioreg), 
+                 alpha = 0.3, colour = "black") +
+    # Add points
+    geom_point(size = 3, aes(shape = forest_type, colour = invert_bioreg)) + 
+    # Custom theme
+    theme(axis.text.y = element_text(colour = "black", size = 10, face = "bold"), 
+          axis.text.x = element_text(face = "bold", size = 10, colour = "black"), 
+          legend.text = element_text(size = 10, face = "bold", colour = "black"), 
+          legend.position = "right", 
+          axis.title.y = element_text(face = "bold", size = 10), 
+          axis.title.x = element_text(face = "bold", size = 10, colour = "black"), 
+          legend.title = element_text(size = 10, colour = "black", face = "bold"), 
+          panel.background = element_blank(), 
+          panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key = element_blank()) + 
+    # Labels and colours
+    labs(x = "NMDS1", colour = "Invertebrate Bioregion", y = "NMDS2", shape = "Forest Type", fill = "Invertebrate Bioregion") +
+    scale_colour_manual(values = c("#b01c38", "#d62618", "#d62618", "#f0e800", "#f0e800", "#f6f195", 
+                                   "#4c10ce", "#042d9b", "#042d9b", "#9b83eb", "#a122a2", "#b62ccb", "#333d37")) +
+    scale_fill_manual(values = c("#b01c38", "#d62618", "#d62618", "#f0e800", "#f0e800", "#f6f195", 
+                                 "#4c10ce", "#042d9b", "#042d9b", "#9b83eb", "#a122a2", "#b62ccb", "#333d37"))  # Match fill colours to point colours
+
+# Display the plot
+NMDS_InvertBioreg
+
+# Save the plot as a .png file
+ggsave("NMDS_InvertBioreg.png", plot = NMDS_InvertBioreg, width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+#STEP 1.2.4: Plot NMDS by Tyler's Line
+
+# Merge z.points with Records_data to include Tyler's Line and forest type
+z.points <- z.points %>%
+    mutate(tylers = Records_data$tylers, 
+           forest_type = Records_data$forest_type)
+
+# Preprocess z.points to remove NAs and group by Tyler's Line
+z.points_clean <- z.points %>%
+    filter(!is.na(tylers))  # Exclude NAs in Tyler's Line
+
+# Calculate convex hulls for each category of Tyler's Line
+convex_hulls <- z.points_clean %>%
+    group_by(tylers) %>%
+    slice(chull(MDS1, MDS2)) %>%
+    ungroup()
+
+# Plot NMDS by Tyler's Line with convex hulls
+NMDS_Tylers <- ggplot(z.points_clean, aes(x = MDS1, y = MDS2)) + 
+    # Add convex hull polygons
+    geom_polygon(data = convex_hulls, aes(x = MDS1, y = MDS2, fill = tylers, group = tylers), 
+                 alpha = 0.3, colour = "black") +
+    # Add points
+    geom_point(size = 3, aes(shape = forest_type, colour = tylers)) + 
+    # Custom theme
+    theme(axis.text.y = element_text(colour = "black", size = 10, face = "bold"), 
+          axis.text.x = element_text(face = "bold", size = 10, colour = "black"), 
+          legend.text = element_text(size = 10, face = "bold", colour = "black"), 
+          legend.position = "right", 
+          axis.title.y = element_text(face = "bold", size = 10), 
+          axis.title.x = element_text(face = "bold", size = 10, colour = "black"), 
+          legend.title = element_text(size = 10, colour = "black", face = "bold"), 
+          panel.background = element_blank(), 
+          panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+          legend.key = element_blank()) + 
+    # Labels and colours
+    labs(x = "NMDS1", colour = "Tyler's Line", y = "NMDS2", shape = "Forest Type", fill = "Tyler's Line") +
+    scale_colour_manual(values = c("#a83232", "#fcdb03", "#32a855")) +
+    scale_fill_manual(values = c("#a83232", "#fcdb03", "#32a855"))  # Match fill colours to point colours
+
+# Display the plot
+NMDS_Tylers
+
+# Save the plot as a .png file
+ggsave("NMDS_Tylers.png", plot = NMDS_Tylers, width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+#STEP 1.2.5: Plot NMDS by Geology (age)
+# Convert landform_age to a factor with specified levels and labels
+Records_data$landform_age <- as.numeric(Records_data$landform_age)
+Records_data$landform_age <- factor(Records_data$landform_age, 
+                                    levels = c(1, 2, 3, 4), 
+                                    labels = c("Cenozoic", "Mesozoic", "Paleozoic", "Precambrian"))
+
+# Align landform_age with z.points
+z.points <- z.points %>%
+    mutate(landform_age = Records_data$landform_age, 
+           forest_type = Records_data$forest_type)
+
+# Preprocess z.points to remove NAs and group by landform_age
+z.points_clean <- z.points %>%
+    filter(!is.na(landform_age))  # Exclude NAs in landform_age
+
+# Calculate convex hulls for each landform_age
+convex_hulls <- z.points_clean %>%
+    group_by(landform_age) %>%
+    slice(chull(MDS1, MDS2)) %>%
+    ungroup()
+
+# Plot NMDS by Geology (landform_age) with convex hulls
+NMDS_Geology <- ggplot(z.points_clean, aes(x = MDS1, y = MDS2)) + 
+    # Add convex hull polygons
+    geom_polygon(data = convex_hulls, aes(x = MDS1, y = MDS2, fill = landform_age, group = landform_age), 
+                 alpha = 0.3, colour = "black") +
+    # Add points
+    geom_point(size = 3, aes(shape = forest_type, colour = landform_age)) + 
+    # Custom theme
+    theme(
+        axis.text.y = element_text(colour = "black", size = 10, face = "bold"), 
+        axis.text.x = element_text(face = "bold", size = 10, colour = "black"), 
+        legend.text = element_text(size = 10, face = "bold", colour = "black"), 
+        legend.position = "right", 
+        axis.title.y = element_text(face = "bold", size = 10), 
+        axis.title.x = element_text(face = "bold", size = 10, colour = "black"), 
+        legend.title = element_text(size = 10, colour = "black", face = "bold"), 
+        panel.background = element_blank(), 
+        panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+        legend.key = element_blank()
+    ) + 
+    # Labels and colours
+    labs(x = "NMDS1", colour = "Landform Age", y = "NMDS2", shape = "Forest Type", fill = "Landform Age") + 
+    scale_colour_manual(values = c("#F5CB5C", "#087CA7", "#6EEB83", "#EA3546")) +
+    scale_fill_manual(values = c("#F5CB5C", "#087CA7", "#6EEB83", "#EA3546"))  # Match fill colours to point colours
+
+# Display the plot
+NMDS_Geology
+
+# Save the plot as a .png file
+ggsave("NMDS_Geology.png", plot = NMDS_Geology, width = 8, height = 6, dpi = 300)
+```
+
+```{r}
+#STEP 1.2.6: Plot NMDS by elevation group
+# Convert elevation_group to a factor with specified levels and labels
+Records_data$elevation_group <- factor(Records_data$elevation_group,                                     
+                                       levels = c("1", "2", "3", "4", "5", "6"), 
+                                       labels = c("0-199m", "200-399m", "400-599m", "600-799m", "800-999m", "1000-1200m"))
+
+# Align elevation_group with z.points
+z.points <- z.points %>%
+    mutate(elevation_group = Records_data$elevation_group, 
+           forest_type = Records_data$forest_type)
+
+# Check the data for completeness
+print(nrow(z.points))
+print(unique(z.points$elevation_group))
+
+# Preprocess z.points to remove NAs and group by elevation_group
+z.points_clean <- z.points %>%
+    filter(!is.na(elevation_group))  # Exclude NAs in elevation_group
+
+# Confirm the cleaned data is not empty
+print(nrow(z.points_clean))
+print(unique(z.points_clean$elevation_group))
+
+# Calculate convex hulls for each elevation_group
+convex_hulls <- z.points_clean %>%
+    group_by(elevation_group) %>%
+    filter(n() >= 3) %>%  # Ensure there are at least 3 points per group for convex hull
+    slice(chull(MDS1, MDS2)) %>%
+    ungroup()
+
+# Check convex hulls
+print(convex_hulls)
+
+# Plot NMDS by elevation group with convex hulls
+NMDS_Altitude <- ggplot(z.points_clean, aes(x = MDS1, y = MDS2)) + 
+    # Add convex hull polygons
+    geom_polygon(data = convex_hulls, aes(x = MDS1, y = MDS2, fill = elevation_group, group = elevation_group), 
+                 alpha = 0.3, colour = "black") +
+    # Add points
+    geom_point(size = 3, aes(shape = forest_type, colour = elevation_group)) + 
+    # Custom theme
+    theme(
+        axis.text.y = element_text(colour = "black", size = 10, face = "bold"), 
+        axis.text.x = element_text(face = "bold", size = 10, colour = "black"), 
+        legend.text = element_text(size = 10, face = "bold", colour = "black"), 
+        legend.position = "right", 
+        axis.title.y = element_text(face = "bold", size = 10), 
+        axis.title.x = element_text(face = "bold", size = 10, colour = "black"), 
+        legend.title = element_text(size = 10, colour = "black", face = "bold"), 
+        panel.background = element_blank(), 
+        panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
+        legend.key = element_blank()
+    ) + 
+    # Labels and colours
+    labs(x = "NMDS1", colour = "Elevation Group", y = "NMDS2", shape = "Forest Type", fill = "Elevation Group") + 
+    scale_colour_manual(values = c("#9EA93F", "#60712F", "#68A357", "#315C2B", "#274029", "#090809")) +
+    scale_fill_manual(values = c("#9EA93F", "#60712F", "#68A357", "#315C2B", "#274029", "#090809"))  # Match fill colours to point colours
+
+# Display the plot
+print(NMDS_Altitude)
+
+# Save the plot as a .png file
+ggsave("NMDS_Altitude.png", plot = NMDS_Altitude, width = 8, height = 6, dpi = 300)
+```
+
+################################################################### 
+**AIM 2: Descriptive statistics, Diversity with altitude**
+###################################################################
+
+```{r}
+#STEP 2.1.1: Join the two dataframes based on the site_ID column to add the elevation column
+df_reshaped <- df_reshaped %>%
+  left_join(Metadata %>% select(site_ID, elevation), by = "site_ID")
+
+# Create the scatterplot with a linear model, formula annotation, and custom scales
+species_richness_plot <- ggplot(df_reshaped, aes(x = elevation, y = Count)) +
+  geom_point() +  # Add points to the plot
+  geom_smooth(method = "lm", fill = "lightblue", color = "darkblue", alpha = 0.5) +  # Add a linear model with light blue shading and dark blue line
+  stat_regline_equation(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    label.x = Inf, label.y = Inf, hjust = 1, vjust = 1
+  ) +  # Add the linear model formula and R² value
+  scale_x_continuous(limits = c(0, 1100)) +  # Set x-axis scale
+  scale_y_continuous(limits = c(0, 55)) +  # Set y-axis scale
+  labs(title = "Species Richness by Elevation",
+       x = "Elevation (meters)",
+       y = "Species Richness") +
+  theme_minimal()  # Apply a minimal theme for a clean look
+
+# Save the plot as a PNG file
+ggsave("species_richness_by_elevation.png", plot = species_richness_plot, width = 8, height = 6, dpi = 300)
+```
+
+END DOCUMENT
