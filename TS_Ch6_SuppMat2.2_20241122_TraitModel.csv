@@ -1,0 +1,13 @@
+,elevation,site_aspect,slope_deg,plant_diversity,day_of_year,days_since_col,in_euc_closp,out_euc_closp,in_understory_closp,out_understory_closp,in_litterdepth,out_litterdepth,in_litt_covp,in_plant_covp,in_moss_covp,in_bareg_covp,in_rock_covp,out_litt_covp,out_bareg_covp,out_log_covp,plants_dist,logs_diameter,BIO1,BIO12,BIO15
+dietDetritivores/Fungivores,0,0,0.01838102,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dietHerbivores,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+dietPredators,0,0,-0.00937463,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.004659379,0,0,0,0
+dietUnknown/various,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.002954134,0,0,-0.002442329,0,0
+sizeL,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.017511319,0,0,0,0
+sizeM,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.005943066,0,0,0,0,0
+sizeS,0,0,0,0,0,0,0,0,0,-0.043381789,0,0.039034613,0,0,0,0,0,0,0,0,0,0,0,0,0
+sizeXL,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+sizeXS,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-0.045229528,0,0,0,0
+nativeaus,0,0.004061129,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+nativeendemic,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.004045617,0,0,0,0,0,0,0,0,0,0
+nativeintr,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
